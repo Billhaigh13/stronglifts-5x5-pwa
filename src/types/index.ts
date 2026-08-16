@@ -85,6 +85,7 @@ export interface UserSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   autoStartRestTimer: boolean;
+  githubToken?: string;
 }
 
 export interface PlateCount {

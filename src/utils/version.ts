@@ -11,6 +11,14 @@ export interface ReleaseInfo {
   apkDownloadUrl?: string;
   htmlUrl: string;
   hasUpdate: boolean;
+  isPrivateRepoError?: boolean;
+}
+
+export interface UpdateCheckResult {
+  success: boolean;
+  release?: ReleaseInfo;
+  errorMessage?: string;
+  isPrivateRepo?: boolean;
 }
 
 // Compare semantic versions (returns > 0 if remote is newer)
@@ -30,16 +38,38 @@ export function compareSemver(remote: string, current: string): number {
   return 0;
 }
 
-export async function checkForAppUpdates(): Promise<ReleaseInfo | null> {
+export async function checkForAppUpdates(token?: string): Promise<UpdateCheckResult> {
   try {
-    const res = await fetch(GITHUB_RELEASES_API, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+    };
+
+    if (token && token.trim()) {
+      headers.Authorization = `Bearer ${token.trim()}`;
+    }
+
+    const res = await fetch(GITHUB_RELEASES_API, { headers });
+
+    if (res.status === 404 || res.status === 401 || res.status === 403) {
+      if (!token) {
+        return {
+          success: false,
+          isPrivateRepo: true,
+          errorMessage: 'Private repo: Add a GitHub Personal Access Token in Settings or make repository public.',
+        };
+      } else {
+        return {
+          success: false,
+          errorMessage: 'GitHub Token unauthorized or expired.',
+        };
+      }
+    }
 
     if (!res.ok) {
-      return null;
+      return {
+        success: false,
+        errorMessage: `GitHub API returned status ${res.status}`,
+      };
     }
 
     const data = await res.json();
@@ -50,7 +80,7 @@ export async function checkForAppUpdates(): Promise<ReleaseInfo | null> {
 
     const hasUpdate = compareSemver(remoteTag, APP_VERSION) > 0;
 
-    return {
+    const release: ReleaseInfo = {
       version: remoteTag.replace(/^v/, ''),
       tagName: remoteTag,
       releaseName: data.name || remoteTag,
@@ -60,13 +90,19 @@ export async function checkForAppUpdates(): Promise<ReleaseInfo | null> {
       htmlUrl: data.html_url,
       hasUpdate,
     };
-  } catch (err) {
-    // Offline or network error
-    return null;
+
+    return {
+      success: true,
+      release,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      errorMessage: err?.message || 'Network error checking updates.',
+    };
   }
 }
 
 export function downloadAndInstallApk(url: string) {
-  // Opening the direct APK URL in Android browser triggers the native package installer
   window.open(url, '_blank');
 }
