@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
-import { DEFAULT_PLATE_INVENTORY, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS } from '../utils/constants';
+import { DEFAULT_PLATE_INVENTORY, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
 import { UpdateModal } from './UpdateModal';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
+import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
@@ -45,6 +46,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [updateStatusText, setUpdateStatusText] = useState<string | null>(null);
   const [availableRelease, setAvailableRelease] = useState<ReleaseInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
+  const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
 
   const handleSaveAll = async () => {
     triggerHaptic('medium');
@@ -275,6 +277,49 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Active Training Program Selection Card */}
+      {(() => {
+        const activeProg = PROGRAM_DEFINITIONS[settings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
+        return (
+          <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-gym-accent" />
+                  <span className="text-xs font-black uppercase tracking-wider text-gym-text">
+                    Active Program
+                  </span>
+                  {activeProg.badge && (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gym-accent/20 text-gym-accent border border-gym-accent/40">
+                      {activeProg.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-extrabold text-gym-text mt-1">
+                  {activeProg.name}
+                </div>
+                <div className="text-[11px] text-gym-cyan font-medium">
+                  {activeProg.tagline}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsProgramModalOpen(true)}
+                className="py-2 px-3 bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold rounded-xl flex items-center gap-1 tap-active"
+              >
+                <span>Switch</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-gym-dimmed leading-relaxed">
+              {activeProg.description}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Plate Inventory Management Card */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
@@ -646,6 +691,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         plateInventory={settings.plateInventory}
         unit={settings.unit}
         exerciseName="Barbell Setup"
+      />
+
+      <ProgramSelectorModal
+        isOpen={isProgramModalOpen}
+        onClose={() => setIsProgramModalOpen(false)}
+        activeProgramId={settings.activeProgramId || 'bill_lifts'}
+        onSelectProgram={async (progId) => {
+          const updated = { ...settings, activeProgramId: progId };
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
       />
     </div>
   );
