@@ -74,20 +74,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setIsCheckingUpdate(true);
     setUpdateStatusText('Checking GitHub releases...');
 
-    const release = await checkForAppUpdates();
+    const res = await checkForAppUpdates(settings.githubToken);
     setIsCheckingUpdate(false);
 
-    if (release && release.hasUpdate) {
-      setAvailableRelease(release);
-      setIsUpdateModalOpen(true);
-      setUpdateStatusText(`Update found: ${release.tagName}!`);
-    } else if (release && !release.hasUpdate) {
-      setUpdateStatusText(`Up to date! You are running the latest version (v${APP_VERSION}).`);
+    if (res.success && res.release) {
+      if (res.release.hasUpdate) {
+        setAvailableRelease(res.release);
+        setIsUpdateModalOpen(true);
+        setUpdateStatusText(`Update found: ${res.release.tagName}!`);
+      } else {
+        setUpdateStatusText(`Up to date! You are running the latest version (v${APP_VERSION}).`);
+      }
     } else {
-      setUpdateStatusText('Unable to check for updates. Check internet connection.');
+      setUpdateStatusText(res.errorMessage || 'Unable to check for updates. Check connection or token.');
     }
 
-    setTimeout(() => setUpdateStatusText(null), 5000);
+    setTimeout(() => setUpdateStatusText(null), 8000);
   };
 
   // Dumbbell Inventory Actions
@@ -254,6 +256,24 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <span>{updateStatusText}</span>
           </div>
         )}
+
+        <div className="pt-2 border-t border-gym-border/40">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[10px] font-bold text-gym-muted uppercase tracking-wider">
+              GitHub Access Token (Optional for Private Repos)
+            </label>
+          </div>
+          <input
+            type="password"
+            placeholder="ghp_... or fine-grained token"
+            value={settings.githubToken || ''}
+            onChange={(e) => setSettings({ ...settings, githubToken: e.target.value })}
+            className="w-full bg-gym-bg px-3 py-2 rounded-xl border border-gym-border text-xs font-mono text-gym-text placeholder-gym-dimmed focus:outline-none focus:border-gym-accent"
+          />
+          <p className="text-[10px] text-gym-dimmed mt-1">
+            Required only if the GitHub repo is set to Private. Not needed if the repo is Public.
+          </p>
+        </div>
       </div>
 
       {/* Plate Inventory Management Card */}

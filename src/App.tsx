@@ -55,11 +55,12 @@ export function App() {
   useEffect(() => {
     loadData();
 
-    // Silently check for app update in background
-    checkForAppUpdates().then((release) => {
-      if (release && release.hasUpdate) {
-        setAvailableRelease(release);
-      }
+    getUserSettings().then((settings) => {
+      checkForAppUpdates(settings.githubToken).then((result) => {
+        if (result.success && result.release && result.release.hasUpdate) {
+          setAvailableRelease(result.release);
+        }
+      });
     });
   }, []);
 
