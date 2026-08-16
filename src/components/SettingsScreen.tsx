@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, Smartphone } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, Smartphone, RefreshCw, CheckCircle2 } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
 import { EXERCISE_DEFINITIONS } from '../utils/constants';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
 import { InstallModal } from './InstallModal';
+import { UpdateModal } from './UpdateModal';
+import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
   userSettings: UserSettings;
@@ -32,6 +34,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [saveToast, setSaveToast] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
 
+  // Update check states
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [updateStatusText, setUpdateStatusText] = useState<string | null>(null);
+  const [availableRelease, setAvailableRelease] = useState<ReleaseInfo | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
+
   const handleSaveAll = async () => {
     triggerHaptic('medium');
     await saveUserSettings(settings);
@@ -53,6 +61,27 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
     onSettingsUpdated();
+  };
+
+  const handleCheckUpdates = async () => {
+    triggerHaptic('light');
+    setIsCheckingUpdate(true);
+    setUpdateStatusText('Checking GitHub releases...');
+
+    const release = await checkForAppUpdates();
+    setIsCheckingUpdate(false);
+
+    if (release && release.hasUpdate) {
+      setAvailableRelease(release);
+      setIsUpdateModalOpen(true);
+      setUpdateStatusText(`Update found: ${release.tagName}!`);
+    } else if (release && !release.hasUpdate) {
+      setUpdateStatusText(`Up to date! You are running the latest version (v${APP_VERSION}).`);
+    } else {
+      setUpdateStatusText('Unable to check for updates. Check internet connection.');
+    }
+
+    setTimeout(() => setUpdateStatusText(null), 5000);
   };
 
   const handleAddDumbbellWeight = () => {
@@ -138,6 +167,42 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           <Check className="w-4 h-4 stroke-[3]" /> Settings and weights updated successfully!
         </div>
       )}
+
+      {/* App Version & In-App APK Updates Card */}
+      <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-gym-text">
+                App Version & Updates
+              </span>
+              <span className="text-[10px] font-mono font-bold bg-gym-surface px-2 py-0.5 rounded-full border border-gym-border text-gym-cyan">
+                v{APP_VERSION}
+              </span>
+            </div>
+            <div className="text-[11px] text-gym-muted mt-0.5">
+              Direct in-place APK updates without data loss
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCheckUpdates}
+            disabled={isCheckingUpdate}
+            className="py-2 px-3 bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold rounded-xl flex items-center gap-1.5 tap-active disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+            Check Updates
+          </button>
+        </div>
+
+        {updateStatusText && (
+          <div className="text-xs font-semibold bg-gym-bg p-2.5 rounded-xl border border-gym-border text-gym-text flex items-center gap-2 animate-fadeIn">
+            <CheckCircle2 className="w-3.5 h-3.5 text-gym-accent shrink-0" />
+            <span>{updateStatusText}</span>
+          </div>
+        )}
+      </div>
 
       {/* PWA Phone Install Card */}
       <div className="bg-gradient-to-r from-gym-card to-gym-surface rounded-3xl border border-gym-accent/40 p-4 shadow-lg flex items-center justify-between">
@@ -397,6 +462,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       <InstallModal
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
+      />
+
+      <UpdateModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        releaseInfo={availableRelease}
       />
     </div>
   );

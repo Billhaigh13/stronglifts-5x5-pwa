@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Sparkles, Download, X } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings, WorkoutSession } from './types';
 import { DEFAULT_USER_SETTINGS } from './utils/constants';
 import {
@@ -14,6 +15,8 @@ import { ActiveWorkout } from './components/ActiveWorkout';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AnalyticsScreen } from './components/AnalyticsScreen';
 import { SettingsScreen } from './components/SettingsScreen';
+import { UpdateModal } from './components/UpdateModal';
+import { checkForAppUpdates, type ReleaseInfo } from './utils/version';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'workout' | 'history' | 'analytics' | 'settings'>('workout');
@@ -24,6 +27,11 @@ export function App() {
   );
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [lastWorkout, setLastWorkout] = useState<WorkoutSession | undefined>(undefined);
+
+  // Background update check
+  const [availableRelease, setAvailableRelease] = useState<ReleaseInfo | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   const loadData = async () => {
     try {
@@ -46,6 +54,13 @@ export function App() {
 
   useEffect(() => {
     loadData();
+
+    // Silently check for app update in background
+    checkForAppUpdates().then((release) => {
+      if (release && release.hasUpdate) {
+        setAvailableRelease(release);
+      }
+    });
   }, []);
 
   if (!isInitialized) {
@@ -70,6 +85,33 @@ export function App() {
         isWorkoutActive={false}
         workoutDuration={0}
       />
+
+      {/* New Version Floating Alert Banner */}
+      {availableRelease && !isBannerDismissed && (
+        <div className="bg-gym-card border-b border-gym-accent/40 px-4 py-2.5 flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-2 text-xs">
+            <Sparkles className="w-4 h-4 text-gym-accent animate-spin" />
+            <span className="font-bold text-gym-text">
+              Update Available: <span className="text-gym-accent">{availableRelease.tagName}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsUpdateModalOpen(true)}
+              className="py-1 px-2.5 bg-gym-accent text-gym-bg font-extrabold text-[11px] uppercase tracking-wider rounded-lg shadow-sm tap-active flex items-center gap-1"
+            >
+              <Download className="w-3 h-3 stroke-[3]" />
+              Update
+            </button>
+            <button
+              onClick={() => setIsBannerDismissed(true)}
+              className="p-1 rounded-lg text-gym-muted hover:text-gym-text"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 w-full">
         {activeTab === 'workout' && (
@@ -114,6 +156,12 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isWorkoutActive={false}
+      />
+
+      <UpdateModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        releaseInfo={availableRelease}
       />
     </div>
   );
