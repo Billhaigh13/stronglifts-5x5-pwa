@@ -46,7 +46,11 @@ export async function initializeDatabase(): Promise<void> {
 export async function getUserSettings(): Promise<UserSettings> {
   const record = await db.settings.get('userSettings');
   if (record && record.value) {
-    return { ...DEFAULT_USER_SETTINGS, ...record.value };
+    return {
+      ...DEFAULT_USER_SETTINGS,
+      ...record.value,
+      plateInventory: record.value.plateInventory || DEFAULT_USER_SETTINGS.plateInventory,
+    };
   }
   return DEFAULT_USER_SETTINGS;
 }

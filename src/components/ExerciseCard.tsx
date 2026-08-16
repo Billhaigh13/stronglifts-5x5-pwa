@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, Plus, Minus, Sparkles } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, WarmupSet } from '../types';
+import type { ExerciseId, ExerciseLog, ExerciseProgressState, PlateInventoryItem, WarmupSet } from '../types';
 import { SetBubble } from './SetBubble';
 import { WarmupSection } from './WarmupSection';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
@@ -12,7 +12,8 @@ interface ExerciseCardProps {
   warmupSets: WarmupSet[];
   unit: string;
   barWeight: number;
-  availablePlates: number[];
+  plateInventory?: PlateInventoryItem[];
+  availablePlates?: number[];
   dumbbellInventory: number[];
   onCycleSetReps: (exerciseId: ExerciseId, setIndex: number) => void;
   onUpdateWeight: (exerciseId: ExerciseId, newWeight: number) => void;
@@ -28,7 +29,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   warmupSets,
   unit,
   barWeight,
-  availablePlates,
+  plateInventory,
   dumbbellInventory,
   onCycleSetReps,
   onUpdateWeight,
@@ -203,7 +204,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           onClose={() => setIsPlateModalOpen(false)}
           initialWeight={exerciseLog.targetWeight}
           barWeight={barWeight}
-          availablePlates={availablePlates}
+          plateInventory={plateInventory}
           unit={unit}
           exerciseName={exerciseLog.exerciseName}
         />

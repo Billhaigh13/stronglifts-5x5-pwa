@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, Smartphone, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
-import { EXERCISE_DEFINITIONS } from '../utils/constants';
+import { DEFAULT_PLATE_INVENTORY, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS } from '../utils/constants';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
 import { InstallModal } from './InstallModal';
 import { UpdateModal } from './UpdateModal';
+import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
@@ -20,7 +21,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   exerciseProgress,
   onSettingsUpdated,
 }) => {
-  const [settings, setSettings] = useState<UserSettings>(userSettings);
+  const [settings, setSettings] = useState<UserSettings>({
+    ...userSettings,
+    plateInventory: userSettings.plateInventory || DEFAULT_PLATE_INVENTORY,
+  });
+
   const [weights, setWeights] = useState<Record<ExerciseId, number>>(() => {
     const map = {} as Record<ExerciseId, number>;
     (Object.keys(EXERCISE_DEFINITIONS) as ExerciseId[]).forEach((id) => {
@@ -30,9 +35,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   });
 
   const [newDbWeight, setNewDbWeight] = useState<string>('');
+  const [newPlateWeight, setNewPlateWeight] = useState<string>('');
+  const [newPlateCount, setNewPlateCount] = useState<string>('2');
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
+  const [isPlateCalcOpen, setIsPlateCalcOpen] = useState<boolean>(false);
 
   // Update check states
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
@@ -84,6 +92,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setTimeout(() => setUpdateStatusText(null), 5000);
   };
 
+  // Dumbbell Inventory Actions
   const handleAddDumbbellWeight = () => {
     const parsed = parseFloat(newDbWeight);
     if (!isNaN(parsed) && parsed > 0 && !settings.dumbbellInventory.includes(parsed)) {
@@ -101,6 +110,44 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     }
     const updated = settings.dumbbellInventory.filter((w) => w !== weightToRemove);
     setSettings({ ...settings, dumbbellInventory: updated });
+    triggerHaptic('light');
+  };
+
+  // Plate Inventory Actions
+  const handleAdjustPlateCount = (weight: number, delta: number) => {
+    const updated = settings.plateInventory.map((p) => {
+      if (p.weight === weight) {
+        const nextCount = Math.max(0, p.count + delta);
+        return { ...p, count: nextCount };
+      }
+      return p;
+    });
+    setSettings({ ...settings, plateInventory: updated });
+    triggerHaptic('light');
+  };
+
+  const handleAddPlateItem = () => {
+    const parsedWeight = parseFloat(newPlateWeight);
+    const parsedCount = parseInt(newPlateCount, 10);
+    if (!isNaN(parsedWeight) && parsedWeight > 0 && !isNaN(parsedCount) && parsedCount > 0) {
+      const exists = settings.plateInventory.some((p) => p.weight === parsedWeight);
+      if (exists) {
+        handleAdjustPlateCount(parsedWeight, parsedCount);
+      } else {
+        const updated = [...settings.plateInventory, { weight: parsedWeight, count: parsedCount }].sort(
+          (a, b) => b.weight - a.weight
+        );
+        setSettings({ ...settings, plateInventory: updated });
+      }
+      setNewPlateWeight('');
+      setNewPlateCount('2');
+      triggerHaptic('light');
+    }
+  };
+
+  const handleRemovePlateItem = (weight: number) => {
+    const updated = settings.plateInventory.filter((p) => p.weight !== weight);
+    setSettings({ ...settings, plateInventory: updated });
     triggerHaptic('light');
   };
 
@@ -145,6 +192,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     }
   };
 
+  // Calculate total plate weight owned
+  const totalPlateWeight = (settings.plateInventory || []).reduce(
+    (acc, p) => acc + p.weight * p.count,
+    0
+  );
+  const totalMaxBarbell = settings.barWeight + totalPlateWeight;
+
   return (
     <div className="pb-28 max-w-md mx-auto px-4 pt-3 space-y-5 animate-fadeIn">
       <div className="flex items-center justify-between">
@@ -164,7 +218,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
       {saveToast && (
         <div className="bg-gym-accent text-gym-bg p-3 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-glow-emerald animate-fadeIn">
-          <Check className="w-4 h-4 stroke-[3]" /> Settings and weights updated successfully!
+          <Check className="w-4 h-4 stroke-[3]" /> Settings and inventory updated successfully!
         </div>
       )}
 
@@ -204,27 +258,175 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         )}
       </div>
 
-      {/* PWA Phone Install Card */}
-      <div className="bg-gradient-to-r from-gym-card to-gym-surface rounded-3xl border border-gym-accent/40 p-4 shadow-lg flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gym-accent/20 border border-gym-accent/40 text-gym-accent flex items-center justify-center">
-            <Smartphone className="w-5 h-5" />
-          </div>
+      {/* Plate Inventory Management Card */}
+      <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-black text-gym-text">Install App on Phone</div>
-            <div className="text-[11px] text-gym-muted">Works 100% offline at the gym</div>
+            <div className="flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-gym-cyan" />
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-text">
+                Barbell Plate Inventory
+              </h3>
+            </div>
+            <p className="text-[11px] text-gym-dimmed mt-0.5">
+              Total Owned: {totalPlateWeight} {settings.unit} (Max load: {totalMaxBarbell} {settings.unit})
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsPlateCalcOpen(true)}
+            className="py-1.5 px-2.5 bg-gym-surface hover:bg-gym-cardHover text-gym-cyan border border-gym-border text-xs font-bold rounded-xl flex items-center gap-1 tap-active"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Calculator
+          </button>
+        </div>
+
+        {/* Plates List with Stepper */}
+        <div className="space-y-1.5">
+          {settings.plateInventory.map((plate) => {
+            const colorConfig = OLYMPIC_PLATE_COLORS[plate.weight] || { bg: '#64748b' };
+            const pairs = Math.floor(plate.count / 2);
+
+            return (
+              <div
+                key={plate.weight}
+                className="flex items-center justify-between bg-gym-bg/80 px-3 py-2 rounded-xl border border-gym-border/40 text-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="w-3 h-3 rounded-full border border-black/40 inline-block shrink-0"
+                    style={{ backgroundColor: colorConfig.bg }}
+                  />
+                  <div>
+                    <span className="font-mono font-bold text-gym-text text-sm">
+                      {plate.weight} {settings.unit}
+                    </span>
+                    <span className="text-[10px] text-gym-dimmed ml-2 font-mono">
+                      ({pairs} {pairs === 1 ? 'pair' : 'pairs'} / {pairs} per side)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-gym-surface rounded-xl border border-gym-border/60 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPlateCount(plate.weight, -2)}
+                      className="w-7 h-7 rounded-lg bg-gym-card hover:bg-gym-border text-gym-text flex items-center justify-center tap-active"
+                      title="-2 plates"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="w-8 text-center font-mono font-black text-gym-cyan">
+                      {plate.count}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPlateCount(plate.weight, 2)}
+                      className="w-7 h-7 rounded-lg bg-gym-card hover:bg-gym-border text-gym-text flex items-center justify-center tap-active"
+                      title="+2 plates"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePlateItem(plate.weight)}
+                    className="text-gym-dimmed hover:text-gym-danger p-1"
+                    title="Remove Plate Denomination"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add Plate Denomination Form */}
+        <div className="flex items-center gap-2 pt-2 border-t border-gym-border/40">
+          <input
+            type="number"
+            step="0.25"
+            placeholder={`Weight (${settings.unit})...`}
+            value={newPlateWeight}
+            onChange={(e) => setNewPlateWeight(e.target.value)}
+            className="flex-2 bg-gym-bg px-3 py-2 rounded-xl border border-gym-border text-xs text-gym-text placeholder-gym-dimmed focus:outline-none focus:border-gym-accent font-mono"
+          />
+          <div className="flex items-center gap-1 bg-gym-bg px-2 py-1 rounded-xl border border-gym-border">
+            <span className="text-[10px] uppercase font-bold text-gym-muted">Qty:</span>
+            <input
+              type="number"
+              min="1"
+              value={newPlateCount}
+              onChange={(e) => setNewPlateCount(e.target.value)}
+              className="w-10 bg-transparent text-center text-xs font-mono font-bold text-gym-text focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleAddPlateItem}
+            className="px-3 py-2 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-cyan border border-gym-border text-xs font-bold flex items-center gap-1 tap-active"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+        </div>
+      </div>
+
+      {/* Dumbbell Inventory Ladder Card */}
+      <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-text">
+              Dumbbell Inventory Ladder
+            </h3>
+            <p className="text-[11px] text-gym-dimmed">
+              Progression ladder used for Dumbbell Bicep Curls
+            </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsInstallModalOpen(true)}
-          className="py-2 px-3 bg-gym-accent text-gym-bg font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-glow-emerald tap-active"
-        >
-          Install
-        </button>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {settings.dumbbellInventory.map((weight) => (
+            <div
+              key={weight}
+              className="bg-gym-surface px-2.5 py-1.5 rounded-xl border border-gym-border/60 flex items-center gap-1.5 text-xs font-mono font-bold text-gym-text"
+            >
+              <span>{weight} {settings.unit}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveDumbbellWeight(weight)}
+                className="text-gym-dimmed hover:text-gym-danger"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
+          <input
+            type="number"
+            step="0.5"
+            placeholder={`Add weight (${settings.unit})...`}
+            value={newDbWeight}
+            onChange={(e) => setNewDbWeight(e.target.value)}
+            className="flex-1 bg-gym-bg px-3 py-2 rounded-xl border border-gym-border text-xs text-gym-text placeholder-gym-dimmed focus:outline-none focus:border-gym-accent font-mono"
+          />
+          <button
+            type="button"
+            onClick={handleAddDumbbellWeight}
+            className="px-3.5 py-2 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold flex items-center gap-1 tap-active"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+        </div>
       </div>
 
+      {/* General Preferences Card */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-4">
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-muted">
           General Preferences
@@ -318,55 +520,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
       </div>
 
-      <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-text">
-              Dumbbell Inventory Ladder
-            </h3>
-            <p className="text-[11px] text-gym-dimmed">
-              Progression ladder used for Dumbbell Bicep Curls
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {settings.dumbbellInventory.map((weight) => (
-            <div
-              key={weight}
-              className="bg-gym-surface px-2.5 py-1.5 rounded-xl border border-gym-border/60 flex items-center gap-1.5 text-xs font-mono font-bold text-gym-text"
-            >
-              <span>{weight} {settings.unit}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveDumbbellWeight(weight)}
-                className="text-gym-dimmed hover:text-gym-danger"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 pt-2">
-          <input
-            type="number"
-            step="0.5"
-            placeholder={`Add weight (${settings.unit})...`}
-            value={newDbWeight}
-            onChange={(e) => setNewDbWeight(e.target.value)}
-            className="flex-1 bg-gym-bg px-3 py-2 rounded-xl border border-gym-border text-xs text-gym-text placeholder-gym-dimmed focus:outline-none focus:border-gym-accent font-mono"
-          />
-          <button
-            type="button"
-            onClick={handleAddDumbbellWeight}
-            className="px-3.5 py-2 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold flex items-center gap-1 tap-active"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add
-          </button>
-        </div>
-      </div>
-
+      {/* Target Weights */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-muted">
           Current Next Session Weights
@@ -402,12 +556,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
       </div>
 
+      {/* Backup & Local Data Management */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-muted">
           Local Data Backup & Restore
         </h3>
         <p className="text-[11px] text-gym-dimmed">
-          All your workout logs are stored offline in your browser's IndexedDB. Export JSON anytime to keep safe local backups.
+          All your workout logs and equipment inventories are stored offline in your browser's IndexedDB. Export JSON anytime to keep safe local backups.
         </p>
 
         {importStatus && (
@@ -468,6 +623,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         isOpen={isUpdateModalOpen}
         onClose={() => setIsUpdateModalOpen(false)}
         releaseInfo={availableRelease}
+      />
+
+      <PlateCalculatorModal
+        isOpen={isPlateCalcOpen}
+        onClose={() => setIsPlateCalcOpen(false)}
+        initialWeight={60}
+        barWeight={settings.barWeight}
+        plateInventory={settings.plateInventory}
+        unit={settings.unit}
+        exerciseName="Barbell Setup"
       />
     </div>
   );

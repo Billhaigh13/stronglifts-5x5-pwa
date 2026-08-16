@@ -16,10 +16,10 @@ export interface ExerciseDefinition {
   name: string;
   category: ExerciseCategory;
   defaultSets: number;
-  defaultTargetReps: number | number[]; // 5 for 5x5, 12 for db curls, etc.
-  increment: number; // 2.5 for bench/squat/row/ohp, 5.0 for deadlift
-  defaultWeight: number; // in kg
-  isFloorLift?: boolean; // Deadlift & Barbell Row start from floor
+  defaultTargetReps: number | number[];
+  increment: number;
+  defaultWeight: number;
+  isFloorLift?: boolean;
   repRangeMin?: number;
   repRangeMax?: number;
 }
@@ -34,10 +34,10 @@ export interface WarmupSet {
 
 export interface ExerciseProgressState {
   exerciseId: ExerciseId;
-  currentWeight: number; // in kg
-  consecutiveFailures: number; // 0, 1, 2, 3 -> triggers 10% deload
+  currentWeight: number;
+  consecutiveFailures: number;
   mode?: 'bodyweight' | 'weighted';
-  targetRepsPerSet?: number; // for curls: 8..12
+  targetRepsPerSet?: number;
   lastCompletedDate?: string;
   allTimePRWeight: number;
   allTimePRReps: number;
@@ -60,7 +60,7 @@ export interface ExerciseLog {
 export interface WorkoutSession {
   id?: number;
   type: WorkoutType;
-  date: string; // ISO date string
+  date: string;
   startTime: number;
   endTime?: number;
   durationSeconds: number;
@@ -69,13 +69,19 @@ export interface WorkoutSession {
   exerciseLogs: ExerciseLog[];
 }
 
+export interface PlateInventoryItem {
+  weight: number; // in kg (or lbs)
+  count: number; // total count owned in gym
+}
+
 export interface UserSettings {
   unit: 'kg' | 'lbs';
   barWeight: number; // Default 20 kg
   dumbbellInventory: number[]; // e.g. [2, 4, 5, 7.5, 9, 10, 12.5, 15, 17.5, 20]
-  availablePlates: number[]; // e.g. [25, 20, 15, 10, 5, 2.5, 1.25]
-  defaultRestSecondsSuccess: number; // default 90s
-  defaultRestSecondsFailure: number; // default 180s
+  plateInventory: PlateInventoryItem[]; // e.g. [{ weight: 20, count: 2 }, { weight: 15, count: 2 }, ...]
+  availablePlates?: number[]; // backwards compatibility fallback
+  defaultRestSecondsSuccess: number;
+  defaultRestSecondsFailure: number;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   autoStartRestTimer: boolean;
@@ -84,6 +90,8 @@ export interface UserSettings {
 export interface PlateCount {
   weight: number;
   countPerSide: number;
+  totalUsed: number;
+  availablePerSide: number;
   color: string;
   textColor?: string;
 }
@@ -92,8 +100,11 @@ export interface PlateCalculationResult {
   targetWeight: number;
   barWeight: number;
   weightPerSide: number;
+  loadedWeight: number;
   plates: PlateCount[];
   remainder: number;
+  isExactMatch: boolean;
+  maxLoadableWeight: number;
 }
 
 export interface ProgressionResult {

@@ -1,4 +1,4 @@
-import type { ExerciseDefinition, ExerciseId, UserSettings, WorkoutType } from '../types';
+import type { ExerciseDefinition, ExerciseId, PlateInventoryItem, UserSettings, WorkoutType } from '../types';
 
 export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
   squat: {
@@ -88,12 +88,23 @@ export const WORKOUT_ROUTINES: Record<WorkoutType, { name: string; exerciseIds: 
 
 export const DEFAULT_DUMBBELL_INVENTORY: number[] = [2, 4, 5, 7.5, 9, 10, 12.5, 15, 17.5, 20];
 
-export const DEFAULT_AVAILABLE_PLATES: number[] = [25, 20, 15, 10, 5, 2.5, 1.25];
+// User's specific plate inventory: 4x1.25, 4x2.5, 4x5, 2x10, 2x15, 2x20
+export const DEFAULT_PLATE_INVENTORY: PlateInventoryItem[] = [
+  { weight: 20, count: 2 },
+  { weight: 15, count: 2 },
+  { weight: 10, count: 2 },
+  { weight: 5, count: 4 },
+  { weight: 2.5, count: 4 },
+  { weight: 1.25, count: 4 },
+];
+
+export const DEFAULT_AVAILABLE_PLATES: number[] = [20, 15, 10, 5, 2.5, 1.25];
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   unit: 'kg',
   barWeight: 20,
   dumbbellInventory: DEFAULT_DUMBBELL_INVENTORY,
+  plateInventory: DEFAULT_PLATE_INVENTORY,
   availablePlates: DEFAULT_AVAILABLE_PLATES,
   defaultRestSecondsSuccess: 90,
   defaultRestSecondsFailure: 180,
@@ -110,4 +121,5 @@ export const OLYMPIC_PLATE_COLORS: Record<number, { bg: string; text: string; bo
   5: { bg: '#f8fafc', text: '#0f172a', border: '#cbd5e1', height: 'h-14' }, // White (5kg)
   2.5: { bg: '#1e293b', text: '#ffffff', border: '#475569', height: 'h-12' }, // Black (2.5kg)
   1.25: { bg: '#94a3b8', text: '#0f172a', height: 'h-10' }, // Silver / Grey (1.25kg)
+  0.5: { bg: '#64748b', text: '#ffffff', height: 'h-8' },
 };
