@@ -5,7 +5,6 @@ import { DEFAULT_PLATE_INVENTORY, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS } f
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
-import { InstallModal } from './InstallModal';
 import { UpdateModal } from './UpdateModal';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
@@ -39,7 +38,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [newPlateCount, setNewPlateCount] = useState<string>('2');
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState<boolean>(false);
-  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
   const [isPlateCalcOpen, setIsPlateCalcOpen] = useState<boolean>(false);
 
   // Update check states
@@ -613,11 +611,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </button>
         </div>
       </div>
-
-      <InstallModal
-        isOpen={isInstallModalOpen}
-        onClose={() => setIsInstallModalOpen(false)}
-      />
 
       <UpdateModal
         isOpen={isUpdateModalOpen}
