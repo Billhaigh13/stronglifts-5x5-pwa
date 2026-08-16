@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: ['master']
+    branches: ['dev', 'test', 'main']
   workflow_dispatch:
 
 permissions:
@@ -31,6 +31,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Extract App Version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building version $VERSION for branch ${{ github.ref_name }}"
+
       - name: Install dependencies
         run: npm ci
 
@@ -48,20 +55,48 @@ jobs:
           cd android
           ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Prepare APK binaries
+        run: |
+          mkdir -p release-assets
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-assets/StrongLifts-5x5.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-assets/StrongLifts-5x5-Test.apk
+
+      - name: Upload CI Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StrongLifts-5x5-Debug-APK
+          name: StrongLifts-5x5-${{ github.ref_name }}-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 14
 
-      - name: Create Release
+      # -------------------------------------------------------------
+      # TEST BRANCH: Publish Pre-Release (Beta / Testing)
+      # -------------------------------------------------------------
+      - name: Create Test Pre-Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: github.ref == 'refs/heads/test'
         with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-          tag_name: v1.0.0
-          name: StrongLifts 5x5 APK v1.0.0
+          files: release-assets/StrongLifts-5x5-Test.apk
+          tag_name: v${{ env.APP_VERSION }}-test
+          name: StrongLifts 5x5 Test Build (v${{ env.APP_VERSION }}-test)
+          body: |
+            🧪 **Pre-Release Test Build**
+            - Branch: `test`
+            - Commit: `${{ github.sha }}`
+            - Test this APK on your device before merging to `main`.
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+
+      # -------------------------------------------------------------
+      # MAIN BRANCH: Publish Official Production Release
+      # -------------------------------------------------------------
+      - name: Create Production Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          files: release-assets/StrongLifts-5x5.apk
+          tag_name: v${{ env.APP_VERSION }}
+          name: StrongLifts 5x5 v${{ env.APP_VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true
