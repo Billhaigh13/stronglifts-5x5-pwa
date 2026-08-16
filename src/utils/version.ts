@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 export const GITHUB_REPO = 'Billhaigh13/stronglifts-5x5-pwa';
 export const GITHUB_RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 
