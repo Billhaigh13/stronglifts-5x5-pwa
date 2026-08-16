@@ -4,6 +4,8 @@
 
 :root {
   color-scheme: dark;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Mobile-first touch improvements & safe area support */
@@ -12,7 +14,17 @@ html, body {
   color: #f1f5f9;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  padding-bottom: env(safe-area-inset-bottom);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Status Bar & Safe Area Utilities */
+.status-bar-safe-top {
+  padding-top: max(var(--safe-area-top), 2.25rem); /* Ensures top bar always clears clock/battery/status bar */
+}
+
+.nav-safe-bottom {
+  padding-bottom: max(var(--safe-area-bottom), 0.75rem);
 }
 
 /* Custom gym scrollbar */
