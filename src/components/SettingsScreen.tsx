@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, Smartphone } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
 import { EXERCISE_DEFINITIONS } from '../utils/constants';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
+import { InstallModal } from './InstallModal';
 
 interface SettingsScreenProps {
   userSettings: UserSettings;
@@ -29,6 +30,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [newDbWeight, setNewDbWeight] = useState<string>('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState<boolean>(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
 
   const handleSaveAll = async () => {
     triggerHaptic('medium');
@@ -136,6 +138,27 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           <Check className="w-4 h-4 stroke-[3]" /> Settings and weights updated successfully!
         </div>
       )}
+
+      {/* PWA Phone Install Card */}
+      <div className="bg-gradient-to-r from-gym-card to-gym-surface rounded-3xl border border-gym-accent/40 p-4 shadow-lg flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gym-accent/20 border border-gym-accent/40 text-gym-accent flex items-center justify-center">
+            <Smartphone className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-black text-gym-text">Install App on Phone</div>
+            <div className="text-[11px] text-gym-muted">Works 100% offline at the gym</div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsInstallModalOpen(true)}
+          className="py-2 px-3 bg-gym-accent text-gym-bg font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-glow-emerald tap-active"
+        >
+          Install
+        </button>
+      </div>
 
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-4">
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-gym-muted">
@@ -370,6 +393,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </button>
         </div>
       </div>
+
+      <InstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
     </div>
   );
 };
