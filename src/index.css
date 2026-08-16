@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* Mobile-first touch improvements & safe area support */
+html, body {
+  background-color: #090d16;
+  color: #f1f5f9;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom gym scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Gym touch target utility */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.tap-active:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
+/* Pulse animation for active rest timer */
+@keyframes timerPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.7);
+  }
+}
+
+.timer-active-glow {
+  animation: timerPulse 2s infinite ease-in-out;
+}
+
+@keyframes celebrateGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(16, 185, 129, 0.8);
+  }
+}
+
+.celebrate-glow {
+  animation: celebrateGlow 1.5s infinite ease-in-out;
+}
