@@ -40,6 +40,42 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const timerIntervalRef = useRef<any>(null);
 
+  // Auto-restore active workout draft if app was closed or interrupted
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('stronglifts_active_draft');
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft && draft.isActive && Array.isArray(draft.exerciseLogs) && draft.exerciseLogs.length > 0) {
+          setSelectedType(draft.selectedType || 'A');
+          setStartTime(draft.startTime || Date.now());
+          setExerciseLogs(draft.exerciseLogs);
+          setWarmupSetsMap(draft.warmupSetsMap || {});
+          setIsActive(true);
+          setElapsedSeconds(Math.floor((Date.now() - (draft.startTime || Date.now())) / 1000));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse active workout draft', e);
+    }
+  }, []);
+
+  // Auto-persist active workout draft on every set or weight change
+  useEffect(() => {
+    if (isActive && exerciseLogs.length > 0) {
+      localStorage.setItem(
+        'stronglifts_active_draft',
+        JSON.stringify({
+          selectedType,
+          startTime,
+          exerciseLogs,
+          warmupSetsMap,
+          isActive: true,
+        })
+      );
+    }
+  }, [isActive, selectedType, startTime, exerciseLogs, warmupSetsMap]);
+
   useEffect(() => {
     if (isActive) {
       timerIntervalRef.current = setInterval(() => {
@@ -250,6 +286,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       }
     }
 
+    localStorage.removeItem('stronglifts_active_draft');
     setIsSummaryOpen(false);
     setIsActive(false);
     setIsRestTimerActive(false);
@@ -369,6 +406,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
               type="button"
               onClick={() => {
                 if (confirm('Cancel active workout? Unsaved sets will be lost.')) {
+                  localStorage.removeItem('stronglifts_active_draft');
                   setIsActive(false);
                   setIsRestTimerActive(false);
                 }
