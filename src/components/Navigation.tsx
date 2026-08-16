@@ -37,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-gym-card/95 backdrop-blur-xl border-t border-gym-border/80 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-gym-card/95 backdrop-blur-xl border-t border-gym-border/80 nav-safe-bottom">
       <div className="max-w-md mx-auto grid grid-cols-4 px-2 py-1.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;

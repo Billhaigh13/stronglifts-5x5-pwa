@@ -20,7 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-gym-bg/95 backdrop-blur-md border-b border-gym-border/60 px-4 py-3">
+    <header className="sticky top-0 z-30 bg-gym-bg/95 backdrop-blur-md border-b border-gym-border/60 px-4 status-bar-safe-top pb-3">
       <div className="max-w-md mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
           <div className="w-9 h-9 rounded-xl bg-gym-accent/15 border border-gym-accent/30 flex items-center justify-center text-gym-accent shadow-glow-emerald/30">
