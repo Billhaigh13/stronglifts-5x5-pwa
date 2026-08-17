@@ -11,11 +11,18 @@ import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
+export interface WorkoutLiveState {
+  isActive: boolean;
+  duration: number;
+  type: WorkoutType;
+}
+
 interface ActiveWorkoutProps {
   userSettings: UserSettings;
   exerciseProgress: Record<ExerciseId, ExerciseProgressState>;
   onWorkoutSaved: () => void;
   onSelectProgram: (programId: ProgramId) => void;
+  onWorkoutStateChange?: (state: WorkoutLiveState) => void;
   lastWorkout?: WorkoutSession;
 }
 
@@ -24,6 +31,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   exerciseProgress,
   onWorkoutSaved,
   onSelectProgram,
+  onWorkoutStateChange,
   lastWorkout,
 }) => {
   const activeProgram = PROGRAM_DEFINITIONS[userSettings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
@@ -53,12 +61,22 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       if (saved) {
         const draft = JSON.parse(saved);
         if (draft && draft.isActive && Array.isArray(draft.exerciseLogs) && draft.exerciseLogs.length > 0) {
-          setSelectedType(draft.selectedType || 'A');
-          setStartTime(draft.startTime || Date.now());
+          const draftType: WorkoutType = draft.selectedType || 'A';
+          const draftStart: number = draft.startTime || Date.now();
+          const currentElapsed = Math.floor((Date.now() - draftStart) / 1000);
+
+          setSelectedType(draftType);
+          setStartTime(draftStart);
           setExerciseLogs(draft.exerciseLogs);
           setWarmupSetsMap(draft.warmupSetsMap || {});
           setIsActive(true);
-          setElapsedSeconds(Math.floor((Date.now() - (draft.startTime || Date.now())) / 1000));
+          setElapsedSeconds(currentElapsed);
+
+          onWorkoutStateChange?.({
+            isActive: true,
+            duration: currentElapsed,
+            type: draftType,
+          });
         }
       }
     } catch (e) {
@@ -82,18 +100,48 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     }
   }, [isActive, selectedType, startTime, exerciseLogs, warmupSetsMap]);
 
+  // Timer loop & state sync
   useEffect(() => {
     if (isActive) {
       timerIntervalRef.current = setInterval(() => {
-        setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+        const duration = Math.floor((Date.now() - startTime) / 1000);
+        setElapsedSeconds(duration);
+        onWorkoutStateChange?.({
+          isActive: true,
+          duration,
+          type: selectedType,
+        });
       }, 1000);
     } else {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      onWorkoutStateChange?.({
+        isActive: false,
+        duration: 0,
+        type: selectedType,
+      });
     }
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [isActive, startTime]);
+  }, [isActive, startTime, selectedType, onWorkoutStateChange]);
+
+  const resetWorkoutState = () => {
+    localStorage.removeItem('stronglifts_active_draft');
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    setIsActive(false);
+    setIsRestTimerActive(false);
+    setIsSummaryOpen(false);
+    setExerciseLogs([]);
+    setWarmupSetsMap({});
+    setStartTime(0);
+    setElapsedSeconds(0);
+    setProgressionResults({});
+    onWorkoutStateChange?.({
+      isActive: false,
+      duration: 0,
+      type: selectedType,
+    });
+  };
 
   const handleStartWorkout = (type: WorkoutType) => {
     setSelectedType(type);
@@ -149,12 +197,19 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       }
     });
 
+    const now = Date.now();
     setExerciseLogs(initialLogs);
     setWarmupSetsMap(initialWarmups);
-    setStartTime(Date.now());
+    setStartTime(now);
     setElapsedSeconds(0);
     setIsActive(true);
     triggerHaptic('heavy');
+
+    onWorkoutStateChange?.({
+      isActive: true,
+      duration: 0,
+      type,
+    });
   };
 
   const handleCycleSetReps = (exerciseId: ExerciseId, setIndex: number) => {
@@ -310,11 +365,15 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       }
     }
 
-    localStorage.removeItem('stronglifts_active_draft');
-    setIsSummaryOpen(false);
-    setIsActive(false);
-    setIsRestTimerActive(false);
+    resetWorkoutState();
     onWorkoutSaved();
+  };
+
+  const handleCancelWorkout = () => {
+    if (confirm('Cancel active workout? Unsaved sets will be lost.')) {
+      triggerHaptic('medium');
+      resetWorkoutState();
+    }
   };
 
   const totalTargetSets = exerciseLogs.reduce((acc, l) => acc + l.targetReps.length, 0);
@@ -457,7 +516,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between bg-gym-card/90 backdrop-blur-md px-4 py-3 rounded-2xl border border-gym-border shadow-md">
             <div>
               <div className="text-xs font-black uppercase text-gym-text flex items-center gap-1.5">
@@ -470,14 +529,8 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (confirm('Cancel active workout? Unsaved sets will be lost.')) {
-                  localStorage.removeItem('stronglifts_active_draft');
-                  setIsActive(false);
-                  setIsRestTimerActive(false);
-                }
-              }}
-              className="px-2.5 py-1.5 rounded-xl bg-gym-surface text-gym-dimmed hover:text-gym-danger text-[11px] font-bold border border-gym-border/60"
+              onClick={handleCancelWorkout}
+              className="px-2.5 py-1.5 rounded-xl bg-gym-surface text-gym-dimmed hover:text-gym-danger text-[11px] font-bold border border-gym-border/60 tap-active"
             >
               Cancel
             </button>

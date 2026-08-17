@@ -6,12 +6,14 @@ interface HeaderProps {
   isWorkoutActive: boolean;
   workoutDuration: number;
   workoutType?: 'A' | 'B';
+  onNavigateToWorkout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   isWorkoutActive,
   workoutDuration,
   workoutType,
+  onNavigateToWorkout,
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -38,7 +40,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center gap-2">
           {isWorkoutActive && (
-            <div className="flex items-center gap-2 bg-gym-surface/80 border border-gym-cyan/30 px-3 py-1.5 rounded-full shadow-glow-cyan/20">
+            <button
+              type="button"
+              onClick={onNavigateToWorkout}
+              className="flex items-center gap-2 bg-gym-surface/90 hover:bg-gym-cardHover border border-gym-cyan/40 px-3 py-1.5 rounded-full shadow-glow-cyan/20 tap-active cursor-pointer transition-colors"
+              title="Return to Active Workout"
+            >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gym-cyan opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-gym-cyan"></span>
@@ -46,10 +53,10 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-xs font-bold text-gym-cyan uppercase">
                 {workoutType ? `Workout ${workoutType}` : 'Active'}
               </span>
-              <span className="text-xs font-mono font-semibold text-gym-text">
+              <span className="text-xs font-mono font-bold text-gym-text">
                 {formatTime(workoutDuration)}
               </span>
-            </div>
+            </button>
           )}
         </div>
       </div>

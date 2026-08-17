@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, Download, X } from 'lucide-react';
+import { Sparkles, Download, X, ChevronRight, Dumbbell } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings, WorkoutSession } from './types';
 import { DEFAULT_USER_SETTINGS } from './utils/constants';
 import {
@@ -12,7 +12,7 @@ import {
 } from './db';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
-import { ActiveWorkout } from './components/ActiveWorkout';
+import { ActiveWorkout, type WorkoutLiveState } from './components/ActiveWorkout';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AnalyticsScreen } from './components/AnalyticsScreen';
 import { SettingsScreen } from './components/SettingsScreen';
@@ -28,6 +28,13 @@ export function App() {
   );
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [lastWorkout, setLastWorkout] = useState<WorkoutSession | undefined>(undefined);
+
+  // Live Workout State synchronization
+  const [workoutState, setWorkoutState] = useState<WorkoutLiveState>({
+    isActive: false,
+    duration: 0,
+    type: 'A',
+  });
 
   // Background update check
   const [availableRelease, setAvailableRelease] = useState<ReleaseInfo | null>(null);
@@ -65,6 +72,12 @@ export function App() {
     });
   }, []);
 
+  const formatTimer = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remainder = secs % 60;
+    return `${mins.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}`;
+  };
+
   if (!isInitialized) {
     return (
       <div className="min-h-screen bg-gym-bg flex flex-col items-center justify-center p-4">
@@ -84,8 +97,10 @@ export function App() {
     <div className="min-h-screen bg-gym-bg text-gym-text flex flex-col justify-between selection:bg-gym-accent selection:text-gym-bg">
       <Header
         activeTab={activeTab}
-        isWorkoutActive={false}
-        workoutDuration={0}
+        isWorkoutActive={workoutState.isActive}
+        workoutDuration={workoutState.duration}
+        workoutType={workoutState.type}
+        onNavigateToWorkout={() => setActiveTab('workout')}
       />
 
       {/* New Version Floating Alert Banner */}
@@ -116,11 +131,13 @@ export function App() {
       )}
 
       <main className="flex-1 w-full">
-        {activeTab === 'workout' && (
+        {/* Keep ActiveWorkout mounted in DOM to prevent timer drops or state loss when switching tabs */}
+        <div className={activeTab === 'workout' ? 'block' : 'hidden'}>
           <ActiveWorkout
             userSettings={userSettings}
             exerciseProgress={exerciseProgress}
             lastWorkout={lastWorkout}
+            onWorkoutStateChange={setWorkoutState}
             onSelectProgram={async (programId) => {
               const updated = { ...userSettings, activeProgramId: programId };
               setUserSettings(updated);
@@ -131,7 +148,7 @@ export function App() {
               setActiveTab('history');
             }}
           />
-        )}
+        </div>
 
         {activeTab === 'history' && (
           <HistoryScreen
@@ -159,10 +176,46 @@ export function App() {
         )}
       </main>
 
+      {/* Floating "Resume Workout in Progress" banner when browsing other tabs */}
+      {workoutState.isActive && activeTab !== 'workout' && (
+        <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pointer-events-none animate-fadeIn">
+          <div className="max-w-md mx-auto pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('workout')}
+              className="w-full bg-gym-card/95 backdrop-blur-md border-2 border-gym-accent/80 p-3 rounded-2xl shadow-glow-emerald flex items-center justify-between tap-active text-left transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gym-accent/20 border border-gym-accent/40 flex items-center justify-center text-gym-accent shadow-glow-emerald/30 shrink-0">
+                  <Dumbbell className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="text-xs font-black uppercase text-gym-text flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gym-accent opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gym-accent"></span>
+                    </span>
+                    Workout {workoutState.type} in Progress
+                  </div>
+                  <div className="text-[11px] font-mono text-gym-accent font-bold mt-0.5">
+                    Elapsed: {formatTimer(workoutState.duration)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 bg-gym-accent text-gym-bg font-extrabold text-xs uppercase px-3.5 py-2 rounded-xl shadow-sm shrink-0">
+                <span>Resume</span>
+                <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isWorkoutActive={false}
+        isWorkoutActive={workoutState.isActive}
       />
 
       <UpdateModal

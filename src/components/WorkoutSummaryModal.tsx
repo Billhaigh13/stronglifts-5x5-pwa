@@ -33,12 +33,29 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
       soundEngine.playVictory();
       triggerHaptic('pr');
 
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#10b981', '#06b6d4', '#fbbf24', '#ffffff'],
-      });
+      // Run confetti smoothly in next animation frame with short duration to prevent GPU hanging
+      const timer = setTimeout(() => {
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 65,
+            origin: { y: 0.65 },
+            colors: ['#10b981', '#06b6d4', '#fbbf24', '#ffffff'],
+            ticks: 80,
+            disableForReducedMotion: true,
+            zIndex: 9999,
+          });
+        } catch (e) {
+          console.warn('Confetti effect failed', e);
+        }
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        try {
+          confetti.reset();
+        } catch {}
+      };
     }
   }, [isOpen]);
 
@@ -56,7 +73,7 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
   }, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="bg-gym-card w-full max-w-md rounded-3xl border border-gym-border shadow-2xl p-5 my-auto max-h-[92vh] flex flex-col">
         <div className="text-center pb-4 border-b border-gym-border/60 shrink-0">
           <div className="w-16 h-16 rounded-2xl bg-gym-accent/20 border-2 border-gym-accent/40 text-gym-accent mx-auto flex items-center justify-center mb-2.5 shadow-glow-emerald">
