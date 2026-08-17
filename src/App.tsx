@@ -8,6 +8,7 @@ import {
   getRecentWorkouts,
   getUserSettings,
   initializeDatabase,
+  saveUserSettings,
 } from './db';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
@@ -120,6 +121,11 @@ export function App() {
             userSettings={userSettings}
             exerciseProgress={exerciseProgress}
             lastWorkout={lastWorkout}
+            onSelectProgram={async (programId) => {
+              const updated = { ...userSettings, activeProgramId: programId };
+              setUserSettings(updated);
+              await saveUserSettings(updated);
+            }}
             onWorkoutSaved={() => {
               loadData();
               setActiveTab('history');

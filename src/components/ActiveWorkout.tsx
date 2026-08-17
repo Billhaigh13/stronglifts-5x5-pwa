@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, CheckCircle2 } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
-import { EXERCISE_DEFINITIONS, WORKOUT_ROUTINES } from '../utils/constants';
+import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
+import type { ExerciseId, ExerciseLog, ExerciseProgressState, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
+import { EXERCISE_DEFINITIONS, PROGRAM_DEFINITIONS } from '../utils/constants';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
 import { ExerciseCard } from './ExerciseCard';
 import { RestTimer } from './RestTimer';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
+import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -14,6 +15,7 @@ interface ActiveWorkoutProps {
   userSettings: UserSettings;
   exerciseProgress: Record<ExerciseId, ExerciseProgressState>;
   onWorkoutSaved: () => void;
+  onSelectProgram: (programId: ProgramId) => void;
   lastWorkout?: WorkoutSession;
 }
 
@@ -21,8 +23,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   userSettings,
   exerciseProgress,
   onWorkoutSaved,
+  onSelectProgram,
   lastWorkout,
 }) => {
+  const activeProgram = PROGRAM_DEFINITIONS[userSettings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
+
   const suggestedWorkout: WorkoutType = lastWorkout ? (lastWorkout.type === 'A' ? 'B' : 'A') : 'A';
   const [selectedType, setSelectedType] = useState<WorkoutType>(suggestedWorkout);
 
@@ -36,9 +41,46 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [restTimerSeconds, setRestTimerSeconds] = useState<number>(90);
 
   const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
+  const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
 
   const timerIntervalRef = useRef<any>(null);
+
+  // Auto-restore active workout draft if app was closed or interrupted
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('stronglifts_active_draft');
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft && draft.isActive && Array.isArray(draft.exerciseLogs) && draft.exerciseLogs.length > 0) {
+          setSelectedType(draft.selectedType || 'A');
+          setStartTime(draft.startTime || Date.now());
+          setExerciseLogs(draft.exerciseLogs);
+          setWarmupSetsMap(draft.warmupSetsMap || {});
+          setIsActive(true);
+          setElapsedSeconds(Math.floor((Date.now() - (draft.startTime || Date.now())) / 1000));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse active workout draft', e);
+    }
+  }, []);
+
+  // Auto-persist active workout draft on every set or weight change
+  useEffect(() => {
+    if (isActive && exerciseLogs.length > 0) {
+      localStorage.setItem(
+        'stronglifts_active_draft',
+        JSON.stringify({
+          selectedType,
+          startTime,
+          exerciseLogs,
+          warmupSetsMap,
+          isActive: true,
+        })
+      );
+    }
+  }, [isActive, selectedType, startTime, exerciseLogs, warmupSetsMap]);
 
   useEffect(() => {
     if (isActive) {
@@ -55,9 +97,17 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const handleStartWorkout = (type: WorkoutType) => {
     setSelectedType(type);
-    const routine = WORKOUT_ROUTINES[type];
+    const routine = activeProgram.routines[type];
     const initialLogs: ExerciseLog[] = routine.exerciseIds.map((exId) => {
-      const def = EXERCISE_DEFINITIONS[exId];
+      const def = EXERCISE_DEFINITIONS[exId] || {
+        id: exId,
+        name: exId,
+        category: 'barbell_compound',
+        defaultSets: 5,
+        defaultTargetReps: 5,
+        increment: 2.5,
+        defaultWeight: 20,
+      };
       const prog = exerciseProgress[exId];
       const weight = prog ? prog.currentWeight : def.defaultWeight;
       const targetRepsCount = def.defaultSets;
@@ -68,6 +118,12 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         targetReps = Array(targetRepsCount).fill(targetPerSet);
       } else if (exId === 'pullups') {
         targetReps = Array(targetRepsCount).fill(10);
+      } else if (exId === 'dips') {
+        targetReps = Array(targetRepsCount).fill(10);
+      } else if (exId === 'skullcrushers' || exId === 'incline_bench' || exId === 'barbell_curl') {
+        targetReps = Array(targetRepsCount).fill(8);
+      } else if (exId === 'plank') {
+        targetReps = Array(targetRepsCount).fill(60);
       } else {
         targetReps = Array(targetRepsCount).fill(5);
       }
@@ -79,14 +135,14 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         targetReps,
         completedReps: Array(targetRepsCount).fill(null),
         completed: false,
-        mode: exId === 'pullups' ? (prog?.mode || 'bodyweight') : undefined,
+        mode: (exId === 'pullups' || exId === 'dips') ? (prog?.mode || 'bodyweight') : undefined,
       };
     });
 
     const initialWarmups: Record<string, WarmupSet[]> = {};
     routine.exerciseIds.forEach((exId) => {
       const def = EXERCISE_DEFINITIONS[exId];
-      if (def.category === 'barbell_compound') {
+      if (def && def.category === 'barbell_compound') {
         const prog = exerciseProgress[exId];
         const weight = prog ? prog.currentWeight : def.defaultWeight;
         initialWarmups[exId] = calculateWarmupSets(exId, weight, userSettings.barWeight);
@@ -98,7 +154,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     setStartTime(Date.now());
     setElapsedSeconds(0);
     setIsActive(true);
-    triggerHaptic('medium');
+    triggerHaptic('heavy');
   };
 
   const handleCycleSetReps = (exerciseId: ExerciseId, setIndex: number) => {
@@ -106,37 +162,36 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       prev.map((log) => {
         if (log.exerciseId !== exerciseId) return log;
 
-        const targetRep = log.targetReps[setIndex];
-        const currentVal = log.completedReps[setIndex];
-        let nextVal: number | null;
+        const targetRep = log.targetReps[setIndex] ?? 5;
+        const currentRep = log.completedReps[setIndex];
+        let nextRep: number | null;
 
-        if (currentVal === null) {
-          nextVal = targetRep;
-        } else if (currentVal > 0) {
-          nextVal = currentVal - 1;
+        if (currentRep === null) {
+          nextRep = targetRep;
+        } else if (currentRep === targetRep) {
+          nextRep = Math.max(0, targetRep - 1);
+        } else if (currentRep > 0) {
+          nextRep = currentRep - 1;
         } else {
-          nextVal = null;
+          nextRep = null;
         }
 
-        const newCompleted = [...log.completedReps];
-        newCompleted[setIndex] = nextVal;
+        const nextCompleted = [...log.completedReps];
+        nextCompleted[setIndex] = nextRep;
 
-        if (userSettings.autoStartRestTimer && nextVal !== null) {
-          if (nextVal >= targetRep) {
-            setRestTimerSeconds(userSettings.defaultRestSecondsSuccess || 90);
-          } else {
-            setRestTimerSeconds(userSettings.defaultRestSecondsFailure || 180);
-          }
+        if (nextRep !== null && userSettings.autoStartRestTimer) {
+          const isSuccess = nextRep >= targetRep;
+          const restSeconds = isSuccess
+            ? userSettings.defaultRestSecondsSuccess
+            : userSettings.defaultRestSecondsFailure;
+
+          setRestTimerSeconds(restSeconds);
           setIsRestTimerActive(true);
         }
 
-        const isPR = log.targetWeight > (exerciseProgress[exerciseId]?.allTimePRWeight || 0) &&
-          newCompleted.every((r) => r !== null && r >= targetRep);
-
         return {
           ...log,
-          completedReps: newCompleted,
-          isPR,
+          completedReps: nextCompleted,
         };
       })
     );
@@ -144,11 +199,14 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const handleUpdateWeight = (exerciseId: ExerciseId, newWeight: number) => {
     setExerciseLogs((prev) =>
-      prev.map((log) => (log.exerciseId === exerciseId ? { ...log, targetWeight: newWeight } : log))
+      prev.map((log) => {
+        if (log.exerciseId !== exerciseId) return log;
+        return { ...log, targetWeight: newWeight };
+      })
     );
 
     const def = EXERCISE_DEFINITIONS[exerciseId];
-    if (def.category === 'barbell_compound') {
+    if (def && def.category === 'barbell_compound') {
       setWarmupSetsMap((prev) => ({
         ...prev,
         [exerciseId]: calculateWarmupSets(exerciseId, newWeight, userSettings.barWeight),
@@ -210,6 +268,8 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const handleSaveWorkoutToDB = async (notes: string) => {
     const session: WorkoutSession = {
       type: selectedType,
+      programId: activeProgram.id,
+      programName: activeProgram.name,
       date: new Date().toISOString(),
       startTime,
       endTime: Date.now(),
@@ -250,6 +310,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       }
     }
 
+    localStorage.removeItem('stronglifts_active_draft');
     setIsSummaryOpen(false);
     setIsActive(false);
     setIsRestTimerActive(false);
@@ -266,6 +327,38 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     <div className="pb-28 max-w-md mx-auto px-4 pt-3">
       {!isActive ? (
         <div className="space-y-4 animate-fadeIn">
+          {/* Active Program Header Card */}
+          <div
+            onClick={() => setIsProgramModalOpen(true)}
+            className="bg-gym-card hover:bg-gym-cardHover rounded-2xl border border-gym-border/80 p-3.5 shadow-md flex items-center justify-between cursor-pointer tap-active transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gym-accent/15 border border-gym-accent/30 flex items-center justify-center text-gym-accent shadow-glow-emerald/20 shrink-0">
+                <Award className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-gym-text">
+                    {activeProgram.name}
+                  </span>
+                  {activeProgram.badge && (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-gym-accent/20 text-gym-accent border border-gym-accent/30">
+                      {activeProgram.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gym-dimmed truncate max-w-[240px]">
+                  {activeProgram.tagline}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-[11px] font-bold text-gym-cyan shrink-0">
+              <span>Change</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </div>
+          </div>
+
           <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-5 shadow-xl relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-mono uppercase font-bold text-gym-accent tracking-wider flex items-center gap-1.5">
@@ -283,7 +376,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
               Ready for Workout {selectedType}?
             </h2>
             <p className="text-xs text-gym-muted leading-relaxed mb-5">
-              3-day weekly cadence with automated progression and warm-up checklist.
+              {activeProgram.name} · 3-day weekly cadence with automated progression.
             </p>
 
             <div className="grid grid-cols-2 gap-2 bg-gym-surface/80 p-1.5 rounded-2xl border border-gym-border/60 mb-5">
@@ -313,10 +406,18 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
             <div className="space-y-2 mb-6">
               <div className="text-[11px] font-bold text-gym-muted uppercase tracking-wider">
-                Scheduled Routine:
+                Scheduled Routine ({activeProgram.routines[selectedType]?.exerciseIds.length || 0} Exercises):
               </div>
-              {WORKOUT_ROUTINES[selectedType].exerciseIds.map((exId, idx) => {
-                const def = EXERCISE_DEFINITIONS[exId];
+              {(activeProgram.routines[selectedType]?.exerciseIds || []).map((exId, idx) => {
+                const def = EXERCISE_DEFINITIONS[exId] || {
+                  id: exId,
+                  name: exId,
+                  category: 'barbell_compound',
+                  defaultSets: 5,
+                  defaultTargetReps: 5,
+                  increment: 2.5,
+                  defaultWeight: 20,
+                };
                 const prog = exerciseProgress[exId];
                 const weight = prog ? prog.currentWeight : def.defaultWeight;
 
@@ -334,8 +435,10 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                       </span>
                     </div>
                     <div className="text-xs font-mono font-black text-gym-cyan">
-                      {exId === 'pullups' && (!prog?.mode || prog.mode === 'bodyweight')
+                      {(exId === 'pullups' || exId === 'dips') && (!prog?.mode || prog.mode === 'bodyweight')
                         ? '3×AMRAP'
+                        : exId === 'plank'
+                        ? '3×60s'
                         : `${weight} ${userSettings.unit}`}
                     </div>
                   </div>
@@ -346,20 +449,20 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             <button
               type="button"
               onClick={() => handleStartWorkout(selectedType)}
-              className="w-full py-4 bg-gym-accent hover:bg-emerald-500 text-gym-bg font-black text-sm uppercase tracking-wider rounded-2xl shadow-glow-emerald transition-all tap-active flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gym-accent hover:bg-emerald-500 text-gym-bg font-black text-base uppercase tracking-wider rounded-2xl shadow-glow-emerald transition-all duration-150 flex items-center justify-center gap-2 tap-active"
             >
-              <Play className="w-5 h-5 fill-current" />
+              <Play className="w-5 h-5 fill-current stroke-[2.5]" />
               Start Workout {selectedType}
             </button>
           </div>
         </div>
       ) : (
-        <div className="space-y-4 animate-fadeIn">
-          <div className="bg-gym-card rounded-2xl border border-gym-border/80 p-3.5 shadow-md flex items-center justify-between">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-gym-card/90 backdrop-blur-md px-4 py-3 rounded-2xl border border-gym-border shadow-md">
             <div>
               <div className="text-xs font-black uppercase text-gym-text flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-gym-accent animate-pulse" />
-                Workout {selectedType} in Progress
+                {activeProgram.name} · Workout {selectedType}
               </div>
               <div className="text-[11px] font-mono text-gym-muted mt-0.5">
                 {totalCompletedSets} of {totalTargetSets} sets checked
@@ -369,6 +472,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
               type="button"
               onClick={() => {
                 if (confirm('Cancel active workout? Unsaved sets will be lost.')) {
+                  localStorage.removeItem('stronglifts_active_draft');
                   setIsActive(false);
                   setIsRestTimerActive(false);
                 }
@@ -394,8 +498,6 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                 onUpdateWeight={handleUpdateWeight}
                 onTogglePullupMode={handleTogglePullupMode}
                 onToggleWarmupSet={handleToggleWarmupSet}
-                soundEnabled={userSettings.soundEnabled}
-                vibrationEnabled={userSettings.vibrationEnabled}
               />
             ))}
           </div>
@@ -404,32 +506,39 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             <button
               type="button"
               onClick={handleFinishWorkout}
-              className="w-full py-4 bg-gym-accent hover:bg-emerald-500 text-gym-bg font-black text-sm uppercase tracking-wider rounded-2xl shadow-glow-emerald transition-all tap-active flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gym-accent hover:bg-emerald-500 text-gym-bg font-black text-base uppercase tracking-wider rounded-2xl shadow-glow-emerald transition-all duration-150 flex items-center justify-center gap-2 tap-active"
             >
               <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-              Finish Workout
+              Finish Workout ({totalCompletedSets}/{totalTargetSets})
             </button>
           </div>
         </div>
       )}
 
       <RestTimer
-        initialSeconds={restTimerSeconds}
         isActive={isRestTimerActive}
-        onClose={() => setIsRestTimerActive(false)}
+        initialSeconds={restTimerSeconds}
         soundEnabled={userSettings.soundEnabled}
         vibrationEnabled={userSettings.vibrationEnabled}
+        onClose={() => setIsRestTimerActive(false)}
       />
 
       <WorkoutSummaryModal
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
-        onSave={handleSaveWorkoutToDB}
         workoutType={selectedType}
         durationSeconds={elapsedSeconds}
         exerciseLogs={exerciseLogs}
         progressionResults={progressionResults}
         unit={userSettings.unit}
+        onSave={handleSaveWorkoutToDB}
+      />
+
+      <ProgramSelectorModal
+        isOpen={isProgramModalOpen}
+        onClose={() => setIsProgramModalOpen(false)}
+        activeProgramId={userSettings.activeProgramId || 'bill_lifts'}
+        onSelectProgram={onSelectProgram}
       />
     </div>
   );
