@@ -3,12 +3,12 @@ import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, Ch
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
 import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
-import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
 import { UpdateModal } from './UpdateModal';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { ProgressionSettingsModal } from './ProgressionSettingsModal';
+import { BackupModal } from './BackupModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
@@ -49,6 +49,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
 
   const handleSaveAll = async () => {
     triggerHaptic('medium');
@@ -153,28 +154,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     const updated = settings.plateInventory.filter((p) => p.weight !== weight);
     setSettings({ ...settings, plateInventory: updated });
     triggerHaptic('light');
-  };
-
-  const handleExport = async () => {
-    triggerHaptic('medium');
-    await exportDatabaseToJSON();
-  };
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    triggerHaptic('medium');
-    setImportStatus('Importing data...');
-    const result = await importDatabaseFromJSON(file);
-
-    if (result.success) {
-      setImportStatus(result.message);
-      onSettingsUpdated();
-    } else {
-      setImportStatus(`Error: ${result.message}`);
-    }
-    setTimeout(() => setImportStatus(null), 4000);
   };
 
   const handleSeedDemo = async () => {
@@ -716,23 +695,21 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={handleExport}
+            onClick={() => setIsBackupModalOpen(true)}
             className="py-2.5 px-3 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-text border border-gym-border text-xs font-bold flex items-center justify-center gap-2 tap-active"
           >
             <Download className="w-4 h-4 text-gym-cyan" />
-            Export JSON
+            Export & Backup Hub
           </button>
 
-          <label className="py-2.5 px-3 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-text border border-gym-border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer tap-active">
+          <button
+            type="button"
+            onClick={() => setIsBackupModalOpen(true)}
+            className="py-2.5 px-3 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-text border border-gym-border text-xs font-bold flex items-center justify-center gap-2 tap-active"
+          >
             <Upload className="w-4 h-4 text-gym-accent" />
-            Import JSON
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportFile}
-              className="hidden"
-            />
-          </label>
+            Import / Restore
+          </button>
         </div>
 
         <div className="pt-2 border-t border-gym-border/40 space-y-2">
@@ -795,6 +772,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           setSettings(updated);
           await saveUserSettings(updated);
           onSettingsUpdated();
+        }}
+      />
+
+      <BackupModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        onDataRestored={() => {
+          onSettingsUpdated();
+          setImportStatus('Data restored successfully!');
+          setTimeout(() => setImportStatus(null), 4000);
         }}
       />
     </div>
