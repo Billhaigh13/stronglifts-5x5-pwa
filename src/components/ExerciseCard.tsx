@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Layers, Plus, Minus, Sparkles } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, PlateInventoryItem, WarmupSet } from '../types';
+import { Layers, Plus, Minus, Sparkles, TrendingUp } from 'lucide-react';
+import type { ExerciseId, ExerciseLog, ExerciseProgressState, ExerciseProgressionConfig, PlateInventoryItem, WarmupSet } from '../types';
 import { SetBubble } from './SetBubble';
 import { WarmupSection } from './WarmupSection';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
@@ -9,6 +9,7 @@ import { EXERCISE_DEFINITIONS } from '../utils/constants';
 interface ExerciseCardProps {
   exerciseLog: ExerciseLog;
   progressState?: ExerciseProgressState;
+  progressionConfig?: ExerciseProgressionConfig;
   warmupSets: WarmupSet[];
   unit: string;
   barWeight: number;
@@ -19,6 +20,7 @@ interface ExerciseCardProps {
   onUpdateWeight: (exerciseId: ExerciseId, newWeight: number) => void;
   onTogglePullupMode?: (exerciseId: ExerciseId, mode: 'bodyweight' | 'weighted') => void;
   onToggleWarmupSet: (exerciseId: ExerciseId, setIndex: number) => void;
+  onOpenProgressionModal?: (exerciseId: ExerciseId) => void;
   soundEnabled?: boolean;
   vibrationEnabled?: boolean;
 }
@@ -26,6 +28,7 @@ interface ExerciseCardProps {
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exerciseLog,
   progressState,
+  progressionConfig,
   warmupSets,
   unit,
   barWeight,
@@ -35,11 +38,20 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onUpdateWeight,
   onTogglePullupMode,
   onToggleWarmupSet,
+  onOpenProgressionModal,
   soundEnabled = true,
   vibrationEnabled = true,
 }) => {
   const [isPlateModalOpen, setIsPlateModalOpen] = useState(false);
-  const def = EXERCISE_DEFINITIONS[exerciseLog.exerciseId];
+  const def = EXERCISE_DEFINITIONS[exerciseLog.exerciseId] || {
+    id: exerciseLog.exerciseId,
+    name: exerciseLog.exerciseName,
+    category: 'barbell_compound',
+    defaultSets: 5,
+    defaultTargetReps: 5,
+    increment: 2.5,
+    defaultWeight: 20,
+  };
   const isBarbell = def.category === 'barbell_compound';
   const isDumbbell = def.category === 'dumbbell_accessory';
   const isPullups = exerciseLog.exerciseId === 'pullups';
@@ -56,7 +68,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         onUpdateWeight(exerciseLog.exerciseId, sorted[prevIdx]);
       }
     } else {
-      const increment = def.increment || 2.5;
+      const increment = progressionConfig?.increment ?? def.increment ?? 2.5;
       const minWeight = isBarbell ? (def.id === 'ohp' ? 20 : (def.isFloorLift ? 40 : 20)) : 0;
       const nextWeight = Math.max(minWeight, exerciseLog.targetWeight + (delta > 0 ? increment : -increment));
       onUpdateWeight(exerciseLog.exerciseId, nextWeight);
@@ -91,10 +103,29 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </span>
             {progressState && progressState.consecutiveFailures > 0 && (
               <span className="text-[10px] bg-gym-warning/20 text-gym-warning font-bold px-1.5 py-0.2 rounded">
-                Attempt {progressState.consecutiveFailures + 1}/3
+                Attempt {progressState.consecutiveFailures + 1}/{progressionConfig?.failuresBeforeDeload || 3}
               </span>
             )}
           </div>
+
+          {/* Quick Progression Rule Badge */}
+          {progressionConfig && (
+            <button
+              type="button"
+              onClick={() => onOpenProgressionModal?.(exerciseLog.exerciseId)}
+              className="flex items-center gap-1 bg-gym-surface/80 hover:bg-gym-surface px-2 py-0.5 rounded-lg border border-gym-border/40 text-[10px] text-gym-accent font-bold mt-1.5 tap-active"
+              title="View or customize progression rules"
+            >
+              <TrendingUp className="w-2.5 h-2.5" />
+              <span>
+                {progressionConfig.strategy === 'double_progression'
+                  ? `${progressionConfig.repRangeMin || 8}–${progressionConfig.repRangeMax || 12} Rep Ladder`
+                  : progressionConfig.strategy === 'bodyweight_reps'
+                  ? `AMRAP → +${progressionConfig.increment}${unit}`
+                  : `+${progressionConfig.increment} ${unit} / pass`}
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -118,14 +149,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
-
-            <div className="px-2.5 text-center">
-              <span className="font-mono font-black text-sm text-gym-text">
-                {exerciseLog.targetWeight}
+            <div className="px-3 text-center min-w-[70px]">
+              <span className="text-base font-black font-mono text-gym-text leading-none block">
+                {exerciseLog.mode === 'bodyweight' ? 'BW' : exerciseLog.targetWeight}
               </span>
-              <span className="text-[10px] text-gym-muted font-bold ml-0.5">{unit}</span>
+              <span className="text-[10px] font-bold text-gym-muted uppercase">
+                {exerciseLog.mode === 'bodyweight' ? 'Bodyweight' : unit}
+              </span>
             </div>
-
             <button
               type="button"
               onClick={() => handleAdjustWeight(1)}
@@ -138,59 +169,60 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </div>
 
       {isPullups && onTogglePullupMode && (
-        <div className="mt-3 flex items-center justify-between bg-gym-bg/80 p-1.5 rounded-2xl border border-gym-border/40">
+        <div className="mt-3 flex items-center gap-2 bg-gym-surface/60 p-1 rounded-2xl border border-gym-border/40">
           <button
             type="button"
-            onClick={() => onTogglePullupMode('pullups', 'bodyweight')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
-              exerciseLog.mode === 'bodyweight'
-                ? 'bg-gym-surface text-gym-text shadow-sm border border-gym-border/80'
-                : 'text-gym-dimmed hover:text-gym-muted'
+            onClick={() => onTogglePullupMode(exerciseLog.exerciseId, 'bodyweight')}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              exerciseLog.mode !== 'weighted'
+                ? 'bg-gym-accent text-gym-bg shadow-glow-emerald font-extrabold'
+                : 'text-gym-muted hover:text-gym-text'
             }`}
           >
-            Bodyweight (AMRAP)
+            Bodyweight (3×AMRAP)
           </button>
           <button
             type="button"
-            onClick={() => onTogglePullupMode('pullups', 'weighted')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
+            onClick={() => onTogglePullupMode(exerciseLog.exerciseId, 'weighted')}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
               exerciseLog.mode === 'weighted'
-                ? 'bg-gym-surface text-gym-cyan shadow-sm border border-gym-cyan/40'
-                : 'text-gym-dimmed hover:text-gym-muted'
+                ? 'bg-gym-accent text-gym-bg shadow-glow-emerald font-extrabold'
+                : 'text-gym-muted hover:text-gym-text'
             }`}
           >
-            Weighted (+X kg 3×5)
+            Weighted (+{exerciseLog.targetWeight} {unit})
           </button>
         </div>
       )}
 
+      {/* Warmup sets pyramid */}
       {isBarbell && warmupSets.length > 0 && (
         <WarmupSection
           warmupSets={warmupSets}
           unit={unit}
           onToggleWarmupSet={(idx) => onToggleWarmupSet(exerciseLog.exerciseId, idx)}
-          vibrationEnabled={vibrationEnabled}
         />
       )}
 
+      {/* Main work sets bubbles */}
       <div className="mt-4 pt-3 border-t border-gym-border/60">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-gym-muted">
-            Work Sets ({exerciseLog.completedReps.filter((r) => r !== null).length}/{exerciseLog.targetReps.length})
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[11px] font-bold text-gym-muted uppercase tracking-wider">
+            Work Sets ({exerciseLog.targetReps.length} Sets):
           </span>
-          <span className="text-[10px] text-gym-dimmed font-medium">
-            Tap bubble to log reps
+          <span className="text-[11px] font-mono text-gym-cyan font-bold">
+            Tap circle to log reps
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-1.5 overflow-x-auto pb-1">
-          {exerciseLog.targetReps.map((target, setIdx) => (
+        <div className="flex items-center justify-around gap-1">
+          {exerciseLog.targetReps.map((target, idx) => (
             <SetBubble
-              key={setIdx}
-              setIndex={setIdx}
+              key={idx}
+              setIndex={idx}
               targetReps={target}
-              completedReps={exerciseLog.completedReps[setIdx] ?? null}
-              onCycleReps={(idx) => onCycleSetReps(exerciseLog.exerciseId, idx)}
+              completedReps={exerciseLog.completedReps[idx]}
+              onCycleReps={() => onCycleSetReps(exerciseLog.exerciseId, idx)}
               soundEnabled={soundEnabled}
               vibrationEnabled={vibrationEnabled}
             />

@@ -7,7 +7,13 @@ export type ExerciseId =
   | 'ohp' 
   | 'deadlift' 
   | 'bicep_curl' 
-  | 'pullups';
+  | 'pullups'
+  | 'dips'
+  | 'skullcrushers'
+  | 'incline_bench'
+  | 'plank'
+  | 'hanging_leg_raises'
+  | 'barbell_curl';
 
 export type ExerciseCategory = 'barbell_compound' | 'dumbbell_accessory' | 'bodyweight_accessory';
 
@@ -22,6 +28,27 @@ export interface ExerciseDefinition {
   isFloorLift?: boolean;
   repRangeMin?: number;
   repRangeMax?: number;
+}
+
+export type ProgramId = 
+  | 'bill_lifts'
+  | 'classic_5x5'
+  | 'sl_plus_arms'
+  | 'sl_3x5'
+  | 'sl_hypertrophy';
+
+export interface ProgramRoutine {
+  name: string;
+  exerciseIds: ExerciseId[];
+}
+
+export interface ProgramDefinition {
+  id: ProgramId;
+  name: string;
+  tagline: string;
+  description: string;
+  badge?: string;
+  routines: Record<WorkoutType, ProgramRoutine>;
 }
 
 export interface WarmupSet {
@@ -60,6 +87,8 @@ export interface ExerciseLog {
 export interface WorkoutSession {
   id?: number;
   type: WorkoutType;
+  programId?: ProgramId;
+  programName?: string;
   date: string;
   startTime: number;
   endTime?: number;
@@ -74,12 +103,29 @@ export interface PlateInventoryItem {
   count: number; // total count owned in gym
 }
 
+export type ProgressionStrategy = 'linear' | 'double_progression' | 'bodyweight_reps' | 'time';
+
+export interface ExerciseProgressionConfig {
+  exerciseId: ExerciseId;
+  strategy: ProgressionStrategy;
+  increment: number; // e.g. 2.5 kg, 5.0 kg, 1.25 kg
+  deloadPercentage: number; // e.g. 10%, 15%, 20%
+  failuresBeforeDeload: number; // e.g. 3 failures
+  
+  // Dumbbell & Bodyweight parameters
+  repRangeMin?: number; // e.g. 8 reps
+  repRangeMax?: number; // e.g. 12 reps
+  repStep?: number; // e.g. +2 reps per tier (8 -> 10 -> 12)
+}
+
 export interface UserSettings {
   unit: 'kg' | 'lbs';
   barWeight: number; // Default 20 kg
+  activeProgramId: ProgramId; // 'bill_lifts' by default
   dumbbellInventory: number[]; // e.g. [2, 4, 5, 7.5, 9, 10, 12.5, 15, 17.5, 20]
   plateInventory: PlateInventoryItem[]; // e.g. [{ weight: 20, count: 2 }, { weight: 15, count: 2 }, ...]
   availablePlates?: number[]; // backwards compatibility fallback
+  progressionConfigs?: Partial<Record<ExerciseId, ExerciseProgressionConfig>>;
   defaultRestSecondsSuccess: number;
   defaultRestSecondsFailure: number;
   soundEnabled: boolean;
