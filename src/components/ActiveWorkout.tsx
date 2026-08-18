@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
 import type { ExerciseId, ExerciseLog, ExerciseProgressState, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
-import { EXERCISE_DEFINITIONS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, PROGRAM_DEFINITIONS } from '../utils/constants';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
 import { ExerciseCard } from './ExerciseCard';
 import { RestTimer } from './RestTimer';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
+import { ProgressionSettingsModal } from './ProgressionSettingsModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -23,6 +24,7 @@ interface ActiveWorkoutProps {
   onWorkoutSaved: () => void;
   onSelectProgram: (programId: ProgramId) => void;
   onWorkoutStateChange?: (state: WorkoutLiveState) => void;
+  onUpdateUserSettings?: (settings: UserSettings) => Promise<void>;
   lastWorkout?: WorkoutSession;
 }
 
@@ -32,6 +34,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   onWorkoutSaved,
   onSelectProgram,
   onWorkoutStateChange,
+  onUpdateUserSettings,
   lastWorkout,
 }) => {
   const activeProgram = PROGRAM_DEFINITIONS[userSettings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
@@ -50,6 +53,8 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
+  const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [activeProgressionExId, setActiveProgressionExId] = useState<ExerciseId>('squat');
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
 
   const timerIntervalRef = useRef<any>(null);
@@ -311,7 +316,8 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         log.exerciseId,
         log,
         prog,
-        userSettings.dumbbellInventory
+        userSettings.dumbbellInventory,
+        userSettings.progressionConfigs
       );
       results[log.exerciseId] = result;
     });
@@ -542,6 +548,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                 key={log.exerciseId}
                 exerciseLog={log}
                 progressState={exerciseProgress[log.exerciseId]}
+                progressionConfig={userSettings.progressionConfigs?.[log.exerciseId] || DEFAULT_PROGRESSION_CONFIGS[log.exerciseId]}
                 warmupSets={warmupSetsMap[log.exerciseId] || []}
                 unit={userSettings.unit}
                 barWeight={userSettings.barWeight}
@@ -551,6 +558,10 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                 onUpdateWeight={handleUpdateWeight}
                 onTogglePullupMode={handleTogglePullupMode}
                 onToggleWarmupSet={handleToggleWarmupSet}
+                onOpenProgressionModal={(exId) => {
+                  setActiveProgressionExId(exId);
+                  setIsProgressionModalOpen(true);
+                }}
               />
             ))}
           </div>
@@ -592,6 +603,20 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         onClose={() => setIsProgramModalOpen(false)}
         activeProgramId={userSettings.activeProgramId || 'bill_lifts'}
         onSelectProgram={onSelectProgram}
+      />
+
+      <ProgressionSettingsModal
+        isOpen={isProgressionModalOpen}
+        onClose={() => setIsProgressionModalOpen(false)}
+        progressionConfigs={userSettings.progressionConfigs}
+        dumbbellInventory={userSettings.dumbbellInventory}
+        unit={userSettings.unit}
+        initialExerciseId={activeProgressionExId}
+        onSaveConfigs={async (newConfigs) => {
+          if (onUpdateUserSettings) {
+            await onUpdateUserSettings({ ...userSettings, progressionConfigs: newConfigs });
+          }
+        }}
       />
     </div>
   );

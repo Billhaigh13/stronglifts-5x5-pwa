@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
-import { DEFAULT_PLATE_INVENTORY, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
 import { UpdateModal } from './UpdateModal';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
+import { ProgressionSettingsModal } from './ProgressionSettingsModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
@@ -47,6 +48,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [availableRelease, setAvailableRelease] = useState<ReleaseInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
+  const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
 
   const handleSaveAll = async () => {
     triggerHaptic('medium');
@@ -317,6 +319,83 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <p className="text-[11px] text-gym-dimmed leading-relaxed">
               {activeProg.description}
             </p>
+          </div>
+        );
+      })()}
+
+      {/* Weight Progression & Increments Rules Card */}
+      {(() => {
+        const configs = settings.progressionConfigs || DEFAULT_PROGRESSION_CONFIGS;
+        const squatInc = configs.squat?.increment ?? 2.5;
+        const deadInc = configs.deadlift?.increment ?? 5.0;
+        const benchInc = configs.bench?.increment ?? 2.5;
+        const ohpInc = configs.ohp?.increment ?? 2.5;
+        const curlConfig = configs.bicep_curl || DEFAULT_PROGRESSION_CONFIGS.bicep_curl;
+        const pullupInc = configs.pullups?.increment ?? 1.25;
+
+        return (
+          <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-gym-accent" />
+                  <span className="text-xs font-black uppercase tracking-wider text-gym-text">
+                    Progression Rules & Increments
+                  </span>
+                </div>
+                <div className="text-[11px] text-gym-dimmed mt-0.5">
+                  Custom increments, auto-deload policies & rep ladders
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsProgressionModalOpen(true)}
+                className="py-2 px-3 bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold rounded-xl flex items-center gap-1 tap-active"
+              >
+                <span>Customize</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Quick summary chips */}
+            <div className="grid grid-cols-3 gap-1.5 pt-1">
+              <div className="bg-gym-bg/80 p-2 rounded-xl border border-gym-border/40 text-center">
+                <div className="text-[10px] font-bold text-gym-muted uppercase">Squat</div>
+                <div className="text-xs font-mono font-black text-gym-accent mt-0.5">+{squatInc} {settings.unit}</div>
+              </div>
+
+              <div className="bg-gym-bg/80 p-2 rounded-xl border border-gym-border/40 text-center">
+                <div className="text-[10px] font-bold text-gym-muted uppercase">Deadlift</div>
+                <div className="text-xs font-mono font-black text-gym-accent mt-0.5">+{deadInc} {settings.unit}</div>
+              </div>
+
+              <div className="bg-gym-bg/80 p-2 rounded-xl border border-gym-border/40 text-center">
+                <div className="text-[10px] font-bold text-gym-muted uppercase">Bench & OHP</div>
+                <div className="text-xs font-mono font-black text-gym-accent mt-0.5">+{benchInc} / +{ohpInc}</div>
+              </div>
+
+              <div className="bg-gym-bg/80 p-2 rounded-xl border border-gym-border/40 text-center">
+                <div className="text-[10px] font-bold text-gym-muted uppercase">DB Curls</div>
+                <div className="text-[11px] font-mono font-black text-gym-cyan mt-0.5">
+                  {curlConfig.strategy === 'double_progression'
+                    ? `${curlConfig.repRangeMin || 8}–${curlConfig.repRangeMax || 12} Reps`
+                    : `+${curlConfig.increment} ${settings.unit}`}
+                </div>
+              </div>
+
+              <div className="bg-gym-bg/80 p-2 rounded-xl border border-gym-border/40 text-center">
+                <div className="text-[10px] font-bold text-gym-muted uppercase">Weighted Pullups</div>
+                <div className="text-xs font-mono font-black text-gym-cyan mt-0.5">+{pullupInc} {settings.unit}</div>
+              </div>
+
+              <div className="bg-gym-bg/80 p-2 rounded-xl border border-gym-border/40 text-center flex flex-col justify-center">
+                <div className="text-[10px] font-bold text-gym-muted uppercase">Auto-Deload</div>
+                <div className="text-[11px] font-mono font-black text-gym-warning mt-0.5">
+                  -{configs.squat?.deloadPercentage || 10}% on {configs.squat?.failuresBeforeDeload || 3} fails
+                </div>
+              </div>
+            </div>
           </div>
         );
       })()}
@@ -699,6 +778,20 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         activeProgramId={settings.activeProgramId || 'bill_lifts'}
         onSelectProgram={async (progId) => {
           const updated = { ...settings, activeProgramId: progId };
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
+      />
+
+      <ProgressionSettingsModal
+        isOpen={isProgressionModalOpen}
+        onClose={() => setIsProgressionModalOpen(false)}
+        progressionConfigs={settings.progressionConfigs}
+        dumbbellInventory={settings.dumbbellInventory}
+        unit={settings.unit}
+        onSaveConfigs={async (newConfigs) => {
+          const updated = { ...settings, progressionConfigs: newConfigs };
           setSettings(updated);
           await saveUserSettings(updated);
           onSettingsUpdated();

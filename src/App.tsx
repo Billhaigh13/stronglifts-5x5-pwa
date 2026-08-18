@@ -143,6 +143,10 @@ export function App() {
               setUserSettings(updated);
               await saveUserSettings(updated);
             }}
+            onUpdateUserSettings={async (newSettings) => {
+              setUserSettings(newSettings);
+              await saveUserSettings(newSettings);
+            }}
             onWorkoutSaved={() => {
               loadData();
               setActiveTab('history');

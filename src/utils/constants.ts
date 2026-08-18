@@ -1,4 +1,4 @@
-import type { ExerciseDefinition, ExerciseId, PlateInventoryItem, ProgramDefinition, ProgramId, UserSettings, WorkoutType } from '../types';
+import type { ExerciseDefinition, ExerciseId, ExerciseProgressionConfig, PlateInventoryItem, ProgramDefinition, ProgramId, UserSettings, WorkoutType } from '../types';
 
 export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
   squat: {
@@ -134,13 +134,114 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
   }
 };
 
+export const DEFAULT_PROGRESSION_CONFIGS: Record<ExerciseId, ExerciseProgressionConfig> = {
+  squat: {
+    exerciseId: 'squat',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  bench: {
+    exerciseId: 'bench',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  row: {
+    exerciseId: 'row',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  ohp: {
+    exerciseId: 'ohp',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  deadlift: {
+    exerciseId: 'deadlift',
+    strategy: 'linear',
+    increment: 5.0,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  bicep_curl: {
+    exerciseId: 'bicep_curl',
+    strategy: 'double_progression',
+    increment: 0,
+    repRangeMin: 8,
+    repRangeMax: 12,
+    repStep: 2,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  pullups: {
+    exerciseId: 'pullups',
+    strategy: 'bodyweight_reps',
+    increment: 1.25,
+    repRangeMax: 10,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  dips: {
+    exerciseId: 'dips',
+    strategy: 'bodyweight_reps',
+    increment: 1.25,
+    repRangeMax: 10,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  skullcrushers: {
+    exerciseId: 'skullcrushers',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  incline_bench: {
+    exerciseId: 'incline_bench',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  plank: {
+    exerciseId: 'plank',
+    strategy: 'time',
+    increment: 15,
+    repRangeMax: 60,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  hanging_leg_raises: {
+    exerciseId: 'hanging_leg_raises',
+    strategy: 'bodyweight_reps',
+    increment: 2.5,
+    repRangeMax: 12,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  barbell_curl: {
+    exerciseId: 'barbell_curl',
+    strategy: 'linear',
+    increment: 2.5,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+};
+
 export const PROGRAM_DEFINITIONS: Record<ProgramId, ProgramDefinition> = {
   bill_lifts: {
     id: 'bill_lifts',
     name: 'BillLifts',
-    tagline: 'StrongLifts 5×5 + DB Bicep Curls & Pull-ups',
-    description: 'The signature routine: 5×5 barbell compounds paired with dumbbell bicep double progression ladder and pull-up AMRAPs.',
-    badge: 'Popular',
+    tagline: '5×5 Compounds + DB Curls & Pull-ups',
+    description: 'The complete signature program: 5×5 core compounds plus high-value bicep curl and pull-up accessories.',
+    badge: 'Recommended',
     routines: {
       A: {
         name: 'Workout A',
@@ -155,9 +256,9 @@ export const PROGRAM_DEFINITIONS: Record<ProgramId, ProgramDefinition> = {
   classic_5x5: {
     id: 'classic_5x5',
     name: 'StrongLifts 5×5 (Classic)',
-    tagline: 'Original pure 3-compound linear progression',
-    description: 'The foundational program: 3 heavy barbell exercises per session with zero accessories for maximum recovery and raw strength.',
-    badge: 'Classic',
+    tagline: 'Pure 3-Compound Workouts (0 Accessories)',
+    description: 'The timeless minimalist strength routine: 3 compound barbell exercises per workout.',
+    badge: 'Pure 5×5',
     routines: {
       A: {
         name: 'Workout A',
@@ -172,9 +273,9 @@ export const PROGRAM_DEFINITIONS: Record<ProgramId, ProgramDefinition> = {
   sl_plus_arms: {
     id: 'sl_plus_arms',
     name: 'StrongLifts 5×5 + Arms',
-    tagline: '5×5 Compounds with Dips, Curls & Skullcrushers',
-    description: 'Adds direct arm hypertrophy (biceps & triceps) to the 5×5 strength routine.',
-    badge: 'Hypertrophy',
+    tagline: 'Compounds + Dips, Skullcrushers & Curls',
+    description: 'Full 5×5 compound lifting paired with dedicated direct arm volume for hypertrophy.',
+    badge: 'Popular',
     routines: {
       A: {
         name: 'Workout A',
@@ -189,8 +290,8 @@ export const PROGRAM_DEFINITIONS: Record<ProgramId, ProgramDefinition> = {
   sl_3x5: {
     id: 'sl_3x5',
     name: 'StrongLifts 3×5 (Intermediate)',
-    tagline: 'Lower volume when 5×5 gets too heavy to recover from',
-    description: 'Reduces barbell work sets from 5×5 to 3×5 so you can continue adding 2.5kg each session past the beginner stage.',
+    tagline: '3×5 Work Sets for Heavy Lifters',
+    description: 'Lower volume variation allowing for continuous strength gains when 5×5 recovery becomes difficult.',
     badge: 'Intermediate',
     routines: {
       A: {
@@ -245,6 +346,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   dumbbellInventory: DEFAULT_DUMBBELL_INVENTORY,
   plateInventory: DEFAULT_PLATE_INVENTORY,
   availablePlates: DEFAULT_AVAILABLE_PLATES,
+  progressionConfigs: DEFAULT_PROGRESSION_CONFIGS,
   defaultRestSecondsSuccess: 90,
   defaultRestSecondsFailure: 180,
   soundEnabled: true,

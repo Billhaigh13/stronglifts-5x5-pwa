@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateNextProgression } from '../utils/progression';
-import type { ExerciseLog, ExerciseProgressState } from '../types';
+import type { ExerciseLog, ExerciseProgressState, ExerciseProgressionConfig } from '../types';
 
 describe('calculateNextProgression', () => {
   const defaultInventory = [2, 4, 5, 7.5, 9, 10, 12.5, 15, 17.5, 20];
@@ -28,6 +28,37 @@ describe('calculateNextProgression', () => {
       expect(result.consecutiveFailures).toBe(0);
       expect(result.isDeload).toBe(false);
       expect(result.message).toContain('+2.5 kg added');
+    });
+
+    it('supports custom microloading increment (e.g. +1.25kg on OHP)', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'ohp',
+        exerciseName: 'Overhead Press',
+        targetWeight: 40,
+        targetReps: [5, 5, 5, 5, 5],
+        completedReps: [5, 5, 5, 5, 5],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'ohp',
+        currentWeight: 40,
+        consecutiveFailures: 0,
+        allTimePRWeight: 40,
+        allTimePRReps: 5,
+      };
+      const customConfigs: Record<string, ExerciseProgressionConfig> = {
+        ohp: {
+          exerciseId: 'ohp',
+          strategy: 'linear',
+          increment: 1.25,
+          deloadPercentage: 10,
+          failuresBeforeDeload: 3,
+        },
+      };
+
+      const result = calculateNextProgression('ohp', log, prog, defaultInventory, customConfigs);
+      expect(result.nextWeight).toBe(41.25);
+      expect(result.message).toContain('+1.25 kg added');
     });
 
     it('increases deadlift weight by 5.0kg on 1x5 success', () => {
@@ -77,31 +108,7 @@ describe('calculateNextProgression', () => {
       expect(result.message).toContain('Attempt 1/3');
     });
 
-    it('keeps weight and increments to 2 on second consecutive failure', () => {
-      const log: ExerciseLog = {
-        exerciseId: 'ohp',
-        exerciseName: 'Overhead Press',
-        targetWeight: 40,
-        targetReps: [5, 5, 5, 5, 5],
-        completedReps: [5, 5, 4, 3, 3],
-        completed: true,
-      };
-      const prog: ExerciseProgressState = {
-        exerciseId: 'ohp',
-        currentWeight: 40,
-        consecutiveFailures: 1,
-        allTimePRWeight: 40,
-        allTimePRReps: 5,
-      };
-
-      const result = calculateNextProgression('ohp', log, prog, defaultInventory);
-      expect(result.nextWeight).toBe(40);
-      expect(result.consecutiveFailures).toBe(2);
-      expect(result.isDeload).toBe(false);
-      expect(result.message).toContain('Attempt 2/3');
-    });
-
-    it('triggers a 10% auto-deload on 3 consecutive failures (rounded to 2.5kg)', () => {
+    it('triggers deload on custom failure threshold (e.g. 2 misses instead of 3)', () => {
       const log: ExerciseLog = {
         exerciseId: 'squat',
         exerciseName: 'Barbell Squat',
@@ -113,21 +120,30 @@ describe('calculateNextProgression', () => {
       const prog: ExerciseProgressState = {
         exerciseId: 'squat',
         currentWeight: 100,
-        consecutiveFailures: 2,
+        consecutiveFailures: 1,
         allTimePRWeight: 100,
         allTimePRReps: 5,
       };
+      const customConfigs: Record<string, ExerciseProgressionConfig> = {
+        squat: {
+          exerciseId: 'squat',
+          strategy: 'linear',
+          increment: 2.5,
+          deloadPercentage: 15,
+          failuresBeforeDeload: 2,
+        },
+      };
 
-      const result = calculateNextProgression('squat', log, prog, defaultInventory);
+      const result = calculateNextProgression('squat', log, prog, defaultInventory, customConfigs);
       expect(result.isDeload).toBe(true);
-      expect(result.nextWeight).toBe(90); // 100 * 0.9 = 90
+      expect(result.nextWeight).toBe(85); // 100 * 0.85 = 85
       expect(result.consecutiveFailures).toBe(0);
-      expect(result.message).toContain('Auto-deloading 10%');
+      expect(result.message).toContain('Auto-deloading 15%');
     });
   });
 
   describe('Dumbbell Double Progression Ladder', () => {
-    it('stays at current weight when sets are below 3x12', () => {
+    it('advances reps from 8 to 10 when 3x8 target is completed', () => {
       const log: ExerciseLog = {
         exerciseId: 'bicep_curl',
         exerciseName: 'Dumbbell Bicep Curls',
@@ -147,10 +163,11 @@ describe('calculateNextProgression', () => {
 
       const result = calculateNextProgression('bicep_curl', log, prog, defaultInventory);
       expect(result.nextWeight).toBe(7.5);
-      expect(result.message).toContain('Keep pushing at 7.5 kg until 3×12 is reached');
+      expect(result.nextTargetReps).toBe(10);
+      expect(result.message).toContain('3×10 at 7.5 kg');
     });
 
-    it('advances to next weight in inventory (9kg) and resets target reps to 8 on hitting 3x12', () => {
+    it('advances to next dumbbell in inventory (9kg) and resets to 8 on completing 3x12', () => {
       const log: ExerciseLog = {
         exerciseId: 'bicep_curl',
         exerciseName: 'Dumbbell Bicep Curls',
@@ -169,9 +186,45 @@ describe('calculateNextProgression', () => {
       };
 
       const result = calculateNextProgression('bicep_curl', log, prog, defaultInventory);
-      expect(result.nextWeight).toBe(9); // Next weight in ladder after 7.5
+      expect(result.nextWeight).toBe(9);
       expect(result.nextTargetReps).toBe(8);
       expect(result.message).toContain('Progressing up to 9 kg');
+    });
+
+    it('supports custom rep ranges (e.g. 6 to 10 reps ladder)', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'bicep_curl',
+        exerciseName: 'Dumbbell Bicep Curls',
+        targetWeight: 10,
+        targetReps: [10, 10, 10],
+        completedReps: [10, 10, 10],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'bicep_curl',
+        currentWeight: 10,
+        targetRepsPerSet: 10,
+        consecutiveFailures: 0,
+        allTimePRWeight: 10,
+        allTimePRReps: 10,
+      };
+      const customConfigs: Record<string, ExerciseProgressionConfig> = {
+        bicep_curl: {
+          exerciseId: 'bicep_curl',
+          strategy: 'double_progression',
+          increment: 0,
+          repRangeMin: 6,
+          repRangeMax: 10,
+          repStep: 2,
+          deloadPercentage: 10,
+          failuresBeforeDeload: 3,
+        },
+      };
+
+      const result = calculateNextProgression('bicep_curl', log, prog, defaultInventory, customConfigs);
+      expect(result.nextWeight).toBe(12.5); // jumps to next weight after 10kg
+      expect(result.nextTargetReps).toBe(6); // resets to 6 reps
+      expect(result.message).toContain('Progressing up to 12.5 kg');
     });
   });
 
