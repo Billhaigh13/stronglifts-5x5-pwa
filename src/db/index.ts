@@ -51,6 +51,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       ...record.value,
       activeProgramId: record.value.activeProgramId || DEFAULT_USER_SETTINGS.activeProgramId,
       plateInventory: record.value.plateInventory || DEFAULT_USER_SETTINGS.plateInventory,
+      progressionConfigs: record.value.progressionConfigs || DEFAULT_USER_SETTINGS.progressionConfigs,
     };
   }
   return DEFAULT_USER_SETTINGS;
