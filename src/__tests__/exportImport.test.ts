@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../db';
-import { importDatabaseFromJSON, type BackupData } from '../utils/exportImport';
+import { importDatabaseFromJSON, getBackupData, getBackupJSONString, type BackupData } from '../utils/exportImport';
 import { DEFAULT_USER_SETTINGS } from '../utils/constants';
 
 describe('exportImport', () => {
@@ -10,7 +10,7 @@ describe('exportImport', () => {
     await db.settings.clear();
   });
 
-  it('successfully imports valid JSON backup payload', async () => {
+  it('successfully imports valid JSON backup payload from File', async () => {
     const backup: BackupData = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -59,6 +59,53 @@ describe('exportImport', () => {
 
     const progress = await db.exerciseProgress.get('squat');
     expect(progress?.currentWeight).toBe(75);
+  });
+
+  it('successfully imports valid JSON backup from raw string (paste mode)', async () => {
+    const backup: BackupData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'StrongLifts 5x5 Tracker',
+      settings: DEFAULT_USER_SETTINGS,
+      exerciseProgress: [
+        {
+          exerciseId: 'bench',
+          currentWeight: 60,
+          consecutiveFailures: 0,
+          allTimePRWeight: 60,
+          allTimePRReps: 5,
+        },
+      ],
+      workouts: [
+        {
+          type: 'B',
+          date: new Date().toISOString(),
+          startTime: Date.now() - 1800000,
+          endTime: Date.now(),
+          durationSeconds: 1800,
+          completed: true,
+          exerciseLogs: [],
+        },
+      ],
+    };
+
+    const result = await importDatabaseFromJSON(JSON.stringify(backup));
+    expect(result.success).toBe(true);
+    expect(result.count).toBe(1);
+
+    const workouts = await db.workouts.toArray();
+    expect(workouts.length).toBe(1);
+    expect(workouts[0].type).toBe('B');
+  });
+
+  it('generates non-empty backup data and string', async () => {
+    const data = await getBackupData();
+    expect(data.app).toBe('StrongLifts 5x5 Tracker');
+    expect(Array.isArray(data.workouts)).toBe(true);
+
+    const str = await getBackupJSONString();
+    expect(typeof str).toBe('string');
+    expect(str).toContain('StrongLifts 5x5 Tracker');
   });
 
   it('rejects corrupted or invalid JSON file with helpful error message', async () => {
