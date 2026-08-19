@@ -83,3 +83,50 @@ html, body {
 .celebrate-glow {
   animation: celebrateGlow 1.5s infinite ease-in-out;
 }
+
+/* Tada & Celebration Burst Animations (GPU Hardware Accelerated - Zero Main Thread Lag) */
+@keyframes tadaPop {
+  0% {
+    transform: scale3d(0.7, 0.7, 1) rotate(-8deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale3d(1.18, 1.18, 1) rotate(6deg);
+    opacity: 1;
+  }
+  55% {
+    transform: scale3d(0.92, 0.92, 1) rotate(-4deg);
+  }
+  75% {
+    transform: scale3d(1.05, 1.05, 1) rotate(2deg);
+  }
+  100% {
+    transform: scale3d(1, 1, 1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-tada {
+  animation: tadaPop 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  will-change: transform, opacity;
+}
+
+@keyframes particleBurst {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--tx), var(--ty), 0) scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.animate-particle {
+  animation: particleBurst 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  will-change: transform, opacity;
+}
+

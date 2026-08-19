@@ -56,9 +56,3 @@ class MockAudioContext {
 
 (window as any).AudioContext = MockAudioContext;
 (window as any).webkitAudioContext = MockAudioContext;
-
-// Mock canvas-confetti
-vi.mock('canvas-confetti', () => ({
-  default: vi.fn(),
-  reset: vi.fn(),
-}));
