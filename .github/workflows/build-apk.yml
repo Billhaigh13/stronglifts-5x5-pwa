@@ -1,7 +1,9 @@
-name: Build Android APK
+name: Build Android APK & Run Tests
 
 on:
   push:
+    branches: ['dev', 'test', 'main']
+  pull_request:
     branches: ['dev', 'test', 'main']
   workflow_dispatch:
 
@@ -36,7 +38,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Building version $VERSION for branch ${{ github.ref_name }}"
+          echo "Building version $VERSION for event ${{ github.event_name }} on ref ${{ github.ref }}"
 
       - name: Install dependencies
         run: npm ci
@@ -67,16 +69,16 @@ jobs:
       - name: Upload CI Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StrongLifts-5x5-${{ github.ref_name }}-APK
+          name: StrongLifts-5x5-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
       # -------------------------------------------------------------
-      # TEST BRANCH: Publish Pre-Release (Beta / Testing)
+      # TEST BRANCH: Publish Pre-Release (Beta / Testing) on Push
       # -------------------------------------------------------------
       - name: Create Test Pre-Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/test'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/test'
         with:
           files: release-assets/StrongLifts-5x5-Test.apk
           tag_name: v${{ env.APP_VERSION }}-test
@@ -91,11 +93,11 @@ jobs:
           generate_release_notes: true
 
       # -------------------------------------------------------------
-      # MAIN BRANCH: Publish Official Production Release
+      # MAIN BRANCH: Publish Official Production Release on Push
       # -------------------------------------------------------------
       - name: Create Production Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           files: release-assets/StrongLifts-5x5.apk
           tag_name: v${{ env.APP_VERSION }}
