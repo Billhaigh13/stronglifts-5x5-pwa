@@ -22,7 +22,18 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // If video or image source is provided and hasn't errored, render native player
+  // For mobility routines, render the high-definition animated vector anatomical demonstration
+  if (category === 'mobility' && exerciseId) {
+    return (
+      <ExerciseVectorIllustration
+        id={exerciseId}
+        category="mobility"
+        className={className}
+      />
+    );
+  }
+
+  // For strength exercises, if video or image source is provided and hasn't errored, render native player
   if (src && !hasError) {
     const isVideo = src.endsWith('.mp4') || src.endsWith('.webm');
     if (isVideo) {
