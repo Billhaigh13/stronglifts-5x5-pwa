@@ -1,4 +1,7 @@
 export const APP_VERSION = '1.4.2';
+export const APP_CHANNEL: 'prod' | 'test' =
+  (import.meta.env.VITE_APP_CHANNEL as 'prod' | 'test') ||
+  (APP_VERSION.includes('test') ? 'test' : 'prod');
 export const GITHUB_REPO = 'Billhaigh13/stronglifts-5x5-pwa';
 export const GITHUB_RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases`;
 
@@ -73,33 +76,35 @@ export async function checkForAppUpdates(token?: string): Promise<UpdateCheckRes
     }
 
     const data = await res.json();
-    
-    // Support both array of releases and single release object
-    let latestRelease: any = null;
-    if (Array.isArray(data)) {
-      if (data.length === 0) {
-        return { success: true };
-      }
-      latestRelease = data[0];
-    } else {
-      latestRelease = data;
+    const releases: any[] = Array.isArray(data) ? data : [data];
+    if (releases.length === 0) {
+      return { success: true };
     }
 
-    const remoteTag = latestRelease.tag_name || '';
-    const apkAsset = latestRelease.assets?.find((a: any) =>
-      a.name.endsWith('.apk') || a.content_type === 'application/vnd.android.package-archive'
-    );
+    // Isolate Prod vs Test release streams
+    const targetRelease = releases.find((r) =>
+      APP_CHANNEL === 'test'
+        ? r.tag_name?.includes('-test') || r.prerelease
+        : !r.prerelease && !r.tag_name?.includes('-test')
+    ) || releases[0];
+
+    const remoteTag = targetRelease.tag_name || '';
+    const apkAsset = targetRelease.assets?.find((a: any) =>
+      APP_CHANNEL === 'test'
+        ? a.name.includes('Test.apk') || a.name.endsWith('.apk')
+        : !a.name.includes('Test.apk') && a.name.endsWith('.apk')
+    ) || targetRelease.assets?.find((a: any) => a.name.endsWith('.apk'));
 
     const hasUpdate = compareSemver(remoteTag, APP_VERSION) > 0;
 
     const release: ReleaseInfo = {
       version: remoteTag.replace(/^v/, ''),
       tagName: remoteTag,
-      releaseName: latestRelease.name || remoteTag,
-      releaseNotes: latestRelease.body || 'No release notes provided.',
-      publishedAt: latestRelease.published_at || '',
-      apkDownloadUrl: apkAsset?.browser_download_url || latestRelease.html_url,
-      htmlUrl: latestRelease.html_url,
+      releaseName: targetRelease.name || remoteTag,
+      releaseNotes: targetRelease.body || 'No release notes provided.',
+      publishedAt: targetRelease.published_at || '',
+      apkDownloadUrl: apkAsset?.browser_download_url || targetRelease.html_url,
+      htmlUrl: targetRelease.html_url,
       hasUpdate,
     };
 
