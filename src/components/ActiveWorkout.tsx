@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
+import type { ExerciseId, ExerciseLog, ExerciseProgressState, MobilityRoutine, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
 import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
 import { ExerciseCard } from './ExerciseCard';
@@ -28,6 +29,7 @@ interface ActiveWorkoutProps {
   onSelectProgram: (programId: ProgramId) => void;
   onWorkoutStateChange?: (state: WorkoutLiveState) => void;
   onUpdateUserSettings?: (settings: UserSettings) => Promise<void>;
+  onStartMobilityRoutine?: (routine: MobilityRoutine) => void;
   lastWorkout?: WorkoutSession;
   workouts?: WorkoutSession[];
 }
@@ -39,6 +41,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   onSelectProgram,
   onWorkoutStateChange,
   onUpdateUserSettings,
+  onStartMobilityRoutine,
   lastWorkout,
   workouts = [],
 }) => {
@@ -405,6 +408,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             workouts={workouts}
             lastWorkout={lastWorkout}
             onOpenScheduleSettings={() => setIsScheduleModalOpen(true)}
+            onStartMobility={() => onStartMobilityRoutine?.(MOBILITY_ROUTINES[0])}
           />
 
           {/* Active Program Header Card */}
