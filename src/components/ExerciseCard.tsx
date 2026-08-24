@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Plus, Minus, Sparkles, TrendingUp } from 'lucide-react';
+import { Layers, Plus, Minus, Sparkles, TrendingUp, Info } from 'lucide-react';
 import type { ExerciseId, ExerciseLog, ExerciseProgressState, ExerciseProgressionConfig, PlateInventoryItem, WarmupSet } from '../types';
 import { SetBubble } from './SetBubble';
 import { WarmupSection } from './WarmupSection';
@@ -21,6 +21,7 @@ interface ExerciseCardProps {
   onTogglePullupMode?: (exerciseId: ExerciseId, mode: 'bodyweight' | 'weighted') => void;
   onToggleWarmupSet: (exerciseId: ExerciseId, setIndex: number) => void;
   onOpenProgressionModal?: (exerciseId: ExerciseId) => void;
+  onOpenGuideModal?: (exerciseId: ExerciseId) => void;
   soundEnabled?: boolean;
   vibrationEnabled?: boolean;
 }
@@ -39,6 +40,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onTogglePullupMode,
   onToggleWarmupSet,
   onOpenProgressionModal,
+  onOpenGuideModal,
   soundEnabled = true,
   vibrationEnabled = true,
 }) => {
@@ -86,10 +88,19 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }`}>
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <h3 className="text-base font-extrabold text-gym-text tracking-tight">
               {exerciseLog.exerciseName}
             </h3>
+            <button
+              type="button"
+              onClick={() => onOpenGuideModal?.(exerciseLog.exerciseId)}
+              className="p-1 rounded-lg text-gym-dimmed hover:text-gym-accent hover:bg-gym-surface/80 transition-colors tap-active"
+              title={`View ${exerciseLog.exerciseName} Guide & Form Tips`}
+              aria-label={`View ${exerciseLog.exerciseName} Guide`}
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
             {exerciseLog.isPR && (
               <span className="bg-gym-gold/20 text-gym-gold border border-gym-gold/40 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                 <Sparkles className="w-2.5 h-2.5" /> PR

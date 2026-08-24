@@ -9,6 +9,7 @@ import { RestTimer } from './RestTimer';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { ProgressionSettingsModal } from './ProgressionSettingsModal';
+import { ExerciseGuideModal } from './ExerciseGuideModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -54,6 +55,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [guideExerciseId, setGuideExerciseId] = useState<ExerciseId | null>(null);
   const [activeProgressionExId, setActiveProgressionExId] = useState<ExerciseId>('squat');
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
 
@@ -562,6 +564,9 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                   setActiveProgressionExId(exId);
                   setIsProgressionModalOpen(true);
                 }}
+                onOpenGuideModal={(exId) => {
+                  setGuideExerciseId(exId);
+                }}
               />
             ))}
           </div>
@@ -617,6 +622,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             await onUpdateUserSettings({ ...userSettings, progressionConfigs: newConfigs });
           }
         }}
+      />
+
+      <ExerciseGuideModal
+        exerciseId={guideExerciseId}
+        onClose={() => setGuideExerciseId(null)}
       />
     </div>
   );
