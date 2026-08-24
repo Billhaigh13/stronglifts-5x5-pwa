@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, Trophy, Sparkles, BarChart2 } from 'lucide-react';
+import { TrendingUp, Trophy, Sparkles, Activity, Heart } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, WorkoutSession } from '../types';
 import { EXERCISE_DEFINITIONS } from '../utils/constants';
 import { calculate1RM } from '../utils/progression';
@@ -19,7 +19,14 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
 
   const exerciseIds = Object.keys(EXERCISE_DEFINITIONS) as ExerciseId[];
 
-  const chronologicalWorkouts = [...workouts].sort(
+  const strengthWorkouts = workouts.filter((w) => w.sessionCategory !== 'mobility');
+  const mobilityWorkouts = workouts.filter((w) => w.sessionCategory === 'mobility');
+
+  const totalRecoveryMinutes = Math.round(
+    mobilityWorkouts.reduce((acc, w) => acc + w.durationSeconds, 0) / 60
+  );
+
+  const chronologicalWorkouts = [...strengthWorkouts].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -42,7 +49,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
     }
   });
 
-  const totalVolume = workouts.reduce((total, w) => {
+  const totalVolume = strengthWorkouts.reduce((total, w) => {
     return (
       total +
       w.exerciseLogs.reduce((acc, log) => {
@@ -52,7 +59,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
     );
   }, 0);
 
-  const totalSets = workouts.reduce((total, w) => {
+  const totalSets = strengthWorkouts.reduce((total, w) => {
     return (
       total +
       w.exerciseLogs.reduce((acc, log) => acc + log.completedReps.filter((r) => r !== null).length, 0)
@@ -80,31 +87,43 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
   const points = chartData.map((d, idx) => `${getX(idx)},${getY(d.weight)}`).join(' ');
 
   return (
-    <div className="pb-28 max-w-md mx-auto px-4 pt-3 space-y-5 animate-fadeIn">
+    <div
+      data-testid="analytics-screen"
+      className="pb-28 max-w-md mx-auto px-4 pt-3 space-y-5 animate-fadeIn"
+    >
       <div>
         <h2 className="text-xl font-extrabold text-gym-text tracking-tight">Progression & Analytics</h2>
         <p className="text-xs text-gym-muted">
-          Linear strength gains and personal records
+          Linear strength gains, volume, and active recovery metrics
         </p>
       </div>
 
+      {/* Top 3 High-Level Metrics */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-gym-card p-3 rounded-2xl border border-gym-border/80 shadow-sm">
-          <div className="text-[10px] font-semibold text-gym-muted uppercase">Sessions</div>
-          <div className="text-lg font-mono font-black text-gym-text">{workouts.length}</div>
+          <div className="text-[10px] font-semibold text-gym-muted uppercase">Lifting</div>
+          <div className="text-lg font-mono font-black text-gym-text">{strengthWorkouts.length}</div>
+          <div className="text-[9px] text-gym-dimmed">{totalSets} sets</div>
         </div>
-        <div className="bg-gym-card p-3 rounded-2xl border border-gym-border/80 shadow-sm">
-          <div className="text-[10px] font-semibold text-gym-muted uppercase">Total Sets</div>
-          <div className="text-lg font-mono font-black text-gym-cyan">{totalSets}</div>
-        </div>
+
         <div className="bg-gym-card p-3 rounded-2xl border border-gym-border/80 shadow-sm">
           <div className="text-[10px] font-semibold text-gym-muted uppercase">Total Lifted</div>
           <div className="text-lg font-mono font-black text-gym-accent truncate">
             {Math.round(totalVolume)} <span className="text-[10px] font-sans font-normal text-gym-muted">{unit}</span>
           </div>
+          <div className="text-[9px] text-gym-dimmed">Cumulative</div>
+        </div>
+
+        <div className="bg-gym-card p-3 rounded-2xl border border-gym-border/80 shadow-sm">
+          <div className="text-[10px] font-semibold text-gym-muted uppercase">Recovery</div>
+          <div className="text-lg font-mono font-black text-purple-400">
+            {mobilityWorkouts.length}
+          </div>
+          <div className="text-[9px] text-gym-dimmed">{totalRecoveryMinutes} min total</div>
         </div>
       </div>
 
+      {/* Weight Progression Chart */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -143,58 +162,43 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
         </div>
 
         {chartData.length === 0 ? (
-          <div className="h-40 bg-gym-bg/80 rounded-2xl border border-gym-border/40 flex flex-col items-center justify-center text-center p-4">
-            <BarChart2 className="w-8 h-8 text-gym-dimmed mb-1" />
-            <div className="text-xs font-bold text-gym-muted">No data logged yet for this lift</div>
-            <div className="text-[10px] text-gym-dimmed mt-0.5">
-              Complete a session including {EXERCISE_DEFINITIONS[selectedExercise].name} to see chart.
-            </div>
+          <div className="h-40 flex flex-col items-center justify-center text-center p-4 bg-gym-bg rounded-2xl border border-gym-border/40 text-gym-muted">
+            <p className="text-xs font-bold">No data recorded for {EXERCISE_DEFINITIONS[selectedExercise].name}</p>
+            <p className="text-[11px] text-gym-dimmed mt-1">Complete your first session to see your progression line chart.</p>
           </div>
         ) : (
-          <div className="bg-gym-bg/90 p-3 rounded-2xl border border-gym-border/40">
+          <div className="h-44 w-full bg-gym-bg rounded-2xl border border-gym-border/40 p-2 relative flex items-center justify-center overflow-hidden">
             <svg
+              className="w-full h-full overflow-visible"
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-              className="w-full h-40 overflow-visible"
+              preserveAspectRatio="none"
             >
-              {[0, 0.5, 1].map((ratio, idx) => {
-                const y = padding + ratio * (chartHeight - padding * 2);
-                const weightVal = Math.round(maxWeight - ratio * weightRange);
-                return (
-                  <g key={idx}>
-                    <line
-                      x1={padding}
-                      y1={y}
-                      x2={chartWidth - padding}
-                      y2={y}
-                      stroke="#2a364f"
-                      strokeDasharray="3 3"
-                      strokeWidth="1"
-                    />
-                    <text
-                      x={padding - 4}
-                      y={y + 3}
-                      fill="#64748b"
-                      fontSize="9"
-                      fontFamily="monospace"
-                      textAnchor="end"
-                    >
-                      {weightVal}
-                    </text>
-                  </g>
-                );
-              })}
+              <defs>
+                <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
 
+              {/* Grid Lines */}
+              <line x1={padding} y1={padding} x2={chartWidth - padding} y2={padding} stroke="#334155" strokeDasharray="3 3" strokeWidth="0.75" />
+              <line x1={padding} y1={chartHeight / 2} x2={chartWidth - padding} y2={chartHeight / 2} stroke="#334155" strokeDasharray="3 3" strokeWidth="0.75" />
+              <line x1={padding} y1={chartHeight - padding} x2={chartWidth - padding} y2={chartHeight - padding} stroke="#334155" strokeWidth="1" />
+
+              {/* Polyline Path */}
               {chartData.length > 1 && (
                 <polyline
                   fill="none"
                   stroke="#10b981"
-                  strokeWidth="3"
+                  strokeWidth="3.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   points={points}
+                  className="drop-shadow-md"
                 />
               )}
 
+              {/* Data points */}
               {chartData.map((d, idx) => {
                 const cx = getX(idx);
                 const cy = getY(d.weight);
@@ -236,6 +240,47 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
         )}
       </div>
 
+      {/* Active Recovery & Joint Health Section */}
+      <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-purple-400" />
+            <h3 className="text-sm font-extrabold text-gym-text uppercase tracking-wider">
+              Active Recovery & Joint Health
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono font-bold text-purple-300 bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 rounded-full">
+            {mobilityWorkouts.length} Flows Logged
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="bg-gym-bg/80 p-3 rounded-2xl border border-gym-border/40 space-y-0.5">
+            <span className="text-[10px] font-bold uppercase text-gym-muted">Total Mobility Time</span>
+            <div className="text-base font-mono font-bold text-purple-400">
+              {totalRecoveryMinutes} mins
+            </div>
+            <p className="text-[10px] text-gym-dimmed">Dedicated to joint mobility</p>
+          </div>
+
+          <div className="bg-gym-bg/80 p-3 rounded-2xl border border-gym-border/40 space-y-0.5">
+            <span className="text-[10px] font-bold uppercase text-gym-muted">Lifter Zones Targeted</span>
+            <div className="text-base font-mono font-bold text-gym-text">
+              {mobilityWorkouts.length > 0 ? 'Hips • Spine • Core' : 'None yet'}
+            </div>
+            <p className="text-[10px] text-gym-dimmed">Decompression & posture</p>
+          </div>
+        </div>
+
+        <div className="bg-purple-950/30 border border-purple-500/30 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-purple-200">
+          <Heart className="w-4 h-4 text-purple-400 shrink-0" />
+          <span className="text-[11px] leading-relaxed">
+            Consistent off-day mobility improves squat depth, overhead press posture, and accelerates central nervous system recovery.
+          </span>
+        </div>
+      </div>
+
+      {/* Personal Records Board */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
         <div className="flex items-center gap-2">
           <Trophy className="w-4 h-4 text-gym-gold" />
