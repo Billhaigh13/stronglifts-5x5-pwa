@@ -8,6 +8,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Glutes', 'Piriformis', 'Hip Rotators'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/pigeon_pose.gif',
     cues: [
       'From all fours or a push-up position, bring your front knee forward towards your wrist.',
       'Angle your front shin comfortably across the floor (do not force a 90° angle if tight).',
@@ -26,6 +27,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Hip Flexors (Psoas)', 'Quadriceps', 'Rectus Femoris'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/couch_stretch.gif',
     cues: [
       'Place your back knee on a soft pad near a wall (or couch) with shin and foot pointing straight up the wall.',
       'Step your other foot forward into a lunge position with front knee over ankle.',
@@ -44,6 +46,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Thoracic Spine', 'Hip Flexors', 'Groin', 'Hamstrings'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/worlds_greatest_stretch.gif',
     cues: [
       'Step into a deep forward lunge with both hands planted inside the front foot.',
       'Keep your back leg straight and back knee lifted off the floor if comfortable.',
@@ -62,6 +65,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Spinal Erectors', 'Abdominals', 'Neck', 'Thoracic Spine'],
     defaultDurationSeconds: 60,
     isBilateral: false,
+    animationUrl: '/mobility/cat_cow.gif',
     cues: [
       'Start on all fours with hands under shoulders and knees under hips.',
       'Cow: Inhale, drop your belly toward the floor, lift your chest and tailbone, and look gently upward.',
@@ -80,6 +84,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Hamstrings', 'Calves', 'Shoulders', 'Lats', 'Spine'],
     defaultDurationSeconds: 45,
     isBilateral: false,
+    animationUrl: '/mobility/downward_dog.gif',
     cues: [
       'Start in a high plank position with hands shoulder-width apart.',
       'Lift hips up and back to form an inverted "V" shape.',
@@ -98,6 +103,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Lower Back', 'Lats', 'Glutes', 'Ankles'],
     defaultDurationSeconds: 60,
     isBilateral: false,
+    animationUrl: '/mobility/childs_pose.gif',
     cues: [
       'Kneel on the floor with big toes touching and knees spread wide apart.',
       'Sit your hips back toward your heels.',
@@ -116,6 +122,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Internal & External Hip Rotators', 'Glutes', 'Adductors'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/ninety_ninety_hips.gif',
     cues: [
       'Sit on the floor with front leg bent at 90° in front of you and rear leg bent at 90° to the side.',
       'Sit tall with chest upright and shoulders squared toward the front shin.',
@@ -134,6 +141,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Thoracic Spine', 'Lats', 'Pectorals', 'Anterior Shoulders'],
     defaultDurationSeconds: 45,
     isBilateral: false,
+    animationUrl: '/mobility/puppy_pose.gif',
     cues: [
       'Begin on all fours with hips stacked directly over your knees.',
       'Walk your hands forward while keeping your hips high over your knees.',
@@ -152,6 +160,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Thoracic Spine', 'Rhomboids', 'Rear Deltoids', 'Neck'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/thread_the_needle.gif',
     cues: [
       'Start on all fours with hands under shoulders and knees under hips.',
       'Slide your right arm under your left arm with palm facing up.',
@@ -170,6 +179,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Abdominals', 'Hip Flexors', 'Chest', 'Lumbar Spine'],
     defaultDurationSeconds: 45,
     isBilateral: false,
+    animationUrl: '/mobility/cobra_pose.gif',
     cues: [
       'Lie face down on the floor with tops of feet pressing into the ground.',
       'Place forearms on the floor under shoulders (Sphinx) or hands under shoulders (Cobra).',
@@ -188,6 +198,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Groin (Adductors)', 'Ankles (Dorsiflexion)', 'Hips', 'Spine'],
     defaultDurationSeconds: 60,
     isBilateral: false,
+    animationUrl: '/mobility/deep_squat_hold.gif',
     cues: [
       'Stand with feet shoulder-width apart, toes turned out 15–30° as in your squat.',
       'Descend into a full deep squat below parallel.',
@@ -206,6 +217,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Adductors (Inner Thighs)', 'Groin', 'Lower Back'],
     defaultDurationSeconds: 60,
     isBilateral: false,
+    animationUrl: '/mobility/butterfly_stretch.gif',
     cues: [
       'Sit tall with soles of your feet together in front of you and knees falling out to the sides.',
       'Hold onto your ankles or feet and sit directly on your sit bones.',
@@ -224,6 +236,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Transverse Abdominis', 'Glutes', 'Lower Back', 'Shoulders'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/bird_dog.gif',
     cues: [
       'Start on all fours with hands under shoulders and knees under hips.',
       'Brace your core tight as if preparing to take a punch.',
@@ -242,6 +255,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Deep Core (TVA)', 'Obliques', 'Hip Flexors', 'Anti-Extension'],
     defaultDurationSeconds: 60,
     isBilateral: false,
+    animationUrl: '/mobility/deadbug.gif',
     cues: [
       'Lie on your back with arms pointing straight toward the ceiling and knees bent at 90° over hips.',
       'Press your lower back flat into the floor (zero gap under your spine).',
@@ -260,6 +274,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Gluteus Maximus', 'Hamstrings', 'Pelvic Stabilizers'],
     defaultDurationSeconds: 45,
     isBilateral: false,
+    animationUrl: '/mobility/glute_bridge_hold.gif',
     cues: [
       'Lie on your back with knees bent and feet flat on the floor, hip-width apart.',
       'Drive through your heels to lift your hips up until knees, hips, and shoulders form a straight line.',
@@ -278,6 +293,7 @@ export const MOBILITY_POSES: Record<string, MobilityPose> = {
     targetMuscles: ['Thoracic & Lumbar Spine', 'Glutes', 'Obliques', 'Chest'],
     defaultDurationSeconds: 45,
     isBilateral: true,
+    animationUrl: '/mobility/supine_spinal_twist.gif',
     cues: [
       'Lie on your back with arms extended out in a "T" position at shoulder height.',
       'Bend your right knee toward your chest, then guide it across your body toward the floor on your left.',

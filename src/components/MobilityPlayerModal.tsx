@@ -287,58 +287,78 @@ export const MobilityPlayerModal: React.FC<MobilityPlayerModalProps> = ({
               </div>
             </div>
 
-            {/* Circular Countdown Display */}
-            <div className="relative flex flex-col items-center justify-center py-2 shrink-0">
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                  {/* Background Track */}
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="54"
-                    className="stroke-gym-surface"
-                    strokeWidth="8"
-                    fill="transparent"
+            {/* Visual Animation & Countdown Display */}
+            <div className="flex items-center gap-3 bg-gym-bg/80 p-2.5 rounded-2xl border border-purple-500/20 shrink-0">
+              {/* Looping Animation Card */}
+              {currentPose.animationUrl && (
+                <div className="w-28 h-28 bg-slate-950/90 rounded-xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shrink-0 shadow-inner">
+                  <img
+                    src={currentPose.animationUrl}
+                    alt={currentPose.name}
+                    className="w-full h-full object-contain mix-blend-screen"
+                    loading="eager"
                   />
-                  {/* Active Progress Ring */}
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="54"
-                    className={`transition-all duration-1000 ${
-                      isTransitioning ? 'stroke-gym-gold' : 'stroke-purple-500'
-                    }`}
-                    strokeWidth="8"
-                    strokeDasharray={circleCircumference}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                    fill="transparent"
-                  />
-                </svg>
-
-                {/* Inner Time Display */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  {isTransitioning ? (
-                    <>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gym-gold">
-                        Get Ready
-                      </span>
-                      <span className="text-3xl font-mono font-black text-gym-text">
-                        {transitionSeconds}s
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-3xl font-mono font-black text-purple-400">
-                        {secondsRemaining}s
-                      </span>
-                      {currentStep.side && (
-                        <span className="text-[10px] font-black uppercase tracking-wider text-gym-accent px-1.5 py-0.2 rounded bg-gym-accent/20 border border-gym-accent/40 mt-0.5">
-                          {currentStep.side} Side
-                        </span>
-                      )}
-                    </>
+                  {currentStep.side && (
+                    <div className="absolute top-1 left-1 bg-black/75 backdrop-blur-md px-1.5 py-0.2 rounded border border-purple-500/40 text-[8px] font-black uppercase text-purple-300">
+                      {currentStep.side}
+                    </div>
                   )}
+                </div>
+              )}
+
+              {/* Circular Countdown Progress Ring */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="relative w-28 h-28 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                    {/* Background Track */}
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      className="stroke-gym-surface"
+                      strokeWidth="8"
+                      fill="transparent"
+                    />
+                    {/* Active Progress Ring */}
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      className={`transition-all duration-1000 ${
+                        isTransitioning ? 'stroke-gym-gold' : 'stroke-purple-500'
+                      }`}
+                      strokeWidth="8"
+                      strokeDasharray={circleCircumference}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeLinecap="round"
+                      fill="transparent"
+                    />
+                  </svg>
+
+                  {/* Inner Time Display */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    {isTransitioning ? (
+                      <>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gym-gold">
+                          Get Ready
+                        </span>
+                        <span className="text-2xl font-mono font-black text-gym-text">
+                          {transitionSeconds}s
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-mono font-black text-purple-400">
+                          {secondsRemaining}s
+                        </span>
+                        {currentStep.side && (
+                          <span className="text-[9px] font-black uppercase tracking-wider text-gym-accent px-1.5 py-0.2 rounded bg-gym-accent/20 border border-gym-accent/40 mt-0.5">
+                            {currentStep.side} Side
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
