@@ -25,4 +25,10 @@ describe('compareSemver', () => {
     expect(compareSemver('1.1.0', '1.2.0')).toBe(-1);
     expect(compareSemver('0.9.0', '1.0.0')).toBe(-1);
   });
+
+  it('correctly compares pre-release test tags', () => {
+    expect(compareSemver('v1.4.1-test', '1.4.0')).toBe(1);
+    expect(compareSemver('v1.4.1-test', '1.3.1')).toBe(1);
+    expect(compareSemver('v1.4.1-test', '1.4.1')).toBe(0);
+  });
 });
