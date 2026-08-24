@@ -240,6 +240,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {selectedDayItem.completedWorkouts.length > 0 ? (
             <div className="space-y-3">
               {selectedDayItem.completedWorkouts.map((workout, idx) => {
+                if (workout.sessionCategory === 'mobility') {
+                  return (
+                    <div
+                      key={workout.id || idx}
+                      className="bg-gym-bg/80 p-3.5 rounded-2xl border border-purple-500/30 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-400 font-black text-xs flex items-center justify-center">
+                            🧘
+                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-gym-text">
+                              {workout.programName || 'Active Recovery Flow'}
+                            </div>
+                            <div className="text-[10px] text-gym-muted font-mono flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5 inline mr-0.5" />
+                              <span>{formatDuration(workout.durationSeconds)} • Guided Flow</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {workout.notes && (
+                        <div className="text-[11px] text-gym-dimmed italic bg-gym-surface/60 p-2 rounded-lg border border-gym-border/40">
+                          "{workout.notes}"
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 const totalVol = workout.exerciseLogs.reduce((acc, log) => {
                   const repsSum = log.completedReps.reduce<number>((rAcc, r) => rAcc + (r || 0), 0);
                   return acc + repsSum * log.targetWeight;
