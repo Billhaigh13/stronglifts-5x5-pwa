@@ -26,7 +26,7 @@ describe('Exercise Guides Knowledge Base', () => {
       expect(guide.id).toBe(exId);
       expect(guide.name.length).toBeGreaterThan(0);
       expect(guide.equipment.length).toBeGreaterThan(0);
-      expect(guide.animationUrl).toBe(`/exercises/${exId}.gif`);
+      expect(guide.animationUrl).toMatch(new RegExp(`^/exercises/${exId}\\.(webm|gif)$`));
       expect(guide.primaryMuscles.length).toBeGreaterThan(0);
       expect(guide.secondaryMuscles.length).toBeGreaterThan(0);
       expect(guide.setup.length).toBeGreaterThan(1);

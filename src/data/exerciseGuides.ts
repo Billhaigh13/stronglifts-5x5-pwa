@@ -24,7 +24,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Power Rack & Barbell',
     primaryMuscles: ['Quadriceps', 'Glutes'],
     secondaryMuscles: ['Hamstrings', 'Lower Back', 'Core', 'Calves'],
-    animationUrl: '/exercises/squat.gif',
+    animationUrl: '/exercises/squat.webm',
     overview: 'The king of all lower-body compound movements. Builds leg strength, hip power, and core stability.',
     setup: [
       'Set the rack pins at mid-chest height. Step under the bar and rest it across your upper back / traps.',
@@ -59,7 +59,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Flat Bench & Barbell',
     primaryMuscles: ['Pectorals (Chest)', 'Triceps'],
     secondaryMuscles: ['Anterior Deltoids (Front Shoulders)', 'Core', 'Lats'],
-    animationUrl: '/exercises/bench.gif',
+    animationUrl: '/exercises/bench.webm',
     overview: 'The staple upper-body pushing exercise for building chest mass, tricep power, and shoulder strength.',
     setup: [
       'Lie flat on the bench with your eyes directly under the racked bar.',
@@ -92,7 +92,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Barbell & Weight Plates',
     primaryMuscles: ['Latissimus Dorsi (Lats)', 'Upper Back / Traps', 'Rhomboids'],
     secondaryMuscles: ['Biceps', 'Posterior Deltoids', 'Lower Back', 'Forearms'],
-    animationUrl: '/exercises/row.gif',
+    animationUrl: '/exercises/row.webm',
     overview: 'Full back builder that balances pressing volume, prevents shoulder impingement, and thickens the upper back.',
     setup: [
       'Stand over the barbell with your shins touching the bar and feet hip-width apart.',
@@ -124,7 +124,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Power Rack & Barbell',
     primaryMuscles: ['Deltoids (Shoulders)', 'Triceps'],
     secondaryMuscles: ['Upper Chest (Clavicular)', 'Traps', 'Core', 'Glutes'],
-    animationUrl: '/exercises/ohp.gif',
+    animationUrl: '/exercises/ohp.webm',
     overview: 'The purest test of upper-body vertical pushing strength and overhead stability.',
     setup: [
       'Set the bar at collarbone / mid-chest height. Grip the bar just outside shoulder width.',
@@ -157,7 +157,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Barbell & Weight Plates',
     primaryMuscles: ['Hamstrings', 'Glutes', 'Lower Back (Erectors)'],
     secondaryMuscles: ['Lats', 'Upper Traps', 'Forearms (Grip)', 'Core', 'Quadriceps'],
-    animationUrl: '/exercises/deadlift.gif',
+    animationUrl: '/exercises/deadlift.webm',
     overview: 'The ultimate total-body strength movement. Picks heavy loads off the floor using the entire posterior chain.',
     setup: [
       'Stand with the bar over your mid-foot (about 1 inch from your shins) with a hip-width stance.',
@@ -221,7 +221,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Pull-up Bar (Optional Dip/Belt for Weighted)',
     primaryMuscles: ['Latissimus Dorsi', 'Upper Back'],
     secondaryMuscles: ['Biceps', 'Forearms', 'Core', 'Posterior Deltoids'],
-    animationUrl: '/exercises/pullups.gif',
+    animationUrl: '/exercises/pullups.webm',
     overview: 'The golden standard bodyweight vertical pull for V-taper lat width and functional upper-body power.',
     setup: [
       'Grip the overhead bar with an overhand grip (Pull-up) or underhand grip (Chin-up) slightly wider than shoulder width.',
@@ -309,7 +309,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Incline Bench (30–45°) & Barbell',
     primaryMuscles: ['Clavicular Pectoralis (Upper Chest)', 'Anterior Deltoids'],
     secondaryMuscles: ['Triceps', 'Serratus Anterior', 'Core'],
-    animationUrl: '/exercises/incline_bench.gif',
+    animationUrl: '/exercises/incline_bench.webm',
     overview: 'Upper chest mass builder that fills in the collarbone area and develops overhead pressing transfer.',
     setup: [
       'Set the incline bench angle to 30–45 degrees (30° is optimal for upper chest activation).',
@@ -399,7 +399,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Pull-up Bar',
     primaryMuscles: ['Lower Abdominals', 'Hip Flexors'],
     secondaryMuscles: ['Obliques', 'Forearms (Grip)', 'Lats'],
-    animationUrl: '/exercises/hanging_leg_raises.gif',
+    animationUrl: '/exercises/hanging_leg_raises.webm',
     overview: 'Dynamic core movement performed hanging from a bar to build lower abdominal strength and anti-extension control.',
     setup: [
       'Grip an overhead pull-up bar with an overhand grip slightly wider than shoulder width.',

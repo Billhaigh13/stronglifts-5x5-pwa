@@ -19,8 +19,9 @@ describe('ExerciseGuideModal Component', () => {
     expect(screen.getByText(/Glutes \(Primary\)/i)).toBeInTheDocument();
     expect(screen.getByText('Hamstrings')).toBeInTheDocument();
 
-    expect(screen.getByText(/Phase 1: Setup/i)).toBeInTheDocument();
-    expect(screen.getByText(/Phase 2: Apex/i)).toBeInTheDocument();
+    const video = document.querySelector('video');
+    expect(video).toBeInTheDocument();
+    expect(video).toHaveAttribute('src', '/exercises/squat.webm');
 
     // Default tab shows setup & execution steps
     expect(screen.getByText(/1. Setup & Stance/i)).toBeInTheDocument();
