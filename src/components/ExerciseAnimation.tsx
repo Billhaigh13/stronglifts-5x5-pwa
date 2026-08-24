@@ -37,8 +37,10 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
             playsInline
             onError={() => setHasError(true)}
             onLoadedData={() => setIsLoaded(true)}
+            onLoadedMetadata={() => setIsLoaded(true)}
+            onPlay={() => setIsLoaded(true)}
             className={`${className} rounded-xl transition-opacity duration-300 ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
+              isLoaded ? 'opacity-100' : 'opacity-90'
             }`}
             aria-label={alt}
           />
