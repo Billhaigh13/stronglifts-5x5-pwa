@@ -1,4 +1,14 @@
-import type { ExerciseDefinition, ExerciseId, ExerciseProgressionConfig, PlateInventoryItem, ProgramDefinition, ProgramId, UserSettings, WorkoutType } from '../types';
+import type {
+  ExerciseDefinition,
+  ExerciseId,
+  ExerciseProgressionConfig,
+  PlateInventoryItem,
+  ProgramDefinition,
+  ProgramId,
+  SchedulePreference,
+  UserSettings,
+  WorkoutType
+} from '../types';
 
 export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
   squat: {
@@ -339,6 +349,13 @@ export const DEFAULT_PLATE_INVENTORY: PlateInventoryItem[] = [
 
 export const DEFAULT_AVAILABLE_PLATES: number[] = [20, 15, 10, 5, 2.5, 1.25];
 
+export const DEFAULT_SCHEDULE_PREFERENCE: SchedulePreference = {
+  pattern: 'mon_wed_fri',
+  workoutDays: [1, 3, 5], // Mon, Wed, Fri
+  mobilityDays: [2, 4, 6], // Tue, Thu, Sat
+  restDays: [0], // Sun
+};
+
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   unit: 'kg',
   barWeight: 20,
@@ -347,6 +364,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   plateInventory: DEFAULT_PLATE_INVENTORY,
   availablePlates: DEFAULT_AVAILABLE_PLATES,
   progressionConfigs: DEFAULT_PROGRESSION_CONFIGS,
+  schedulePreference: DEFAULT_SCHEDULE_PREFERENCE,
   defaultRestSecondsSuccess: 90,
   defaultRestSecondsFailure: 180,
   soundEnabled: true,

@@ -137,6 +137,7 @@ export function App() {
             userSettings={userSettings}
             exerciseProgress={exerciseProgress}
             lastWorkout={lastWorkout}
+            workouts={workouts}
             onWorkoutStateChange={setWorkoutState}
             onSelectProgram={async (programId) => {
               const updated = { ...userSettings, activeProgramId: programId };
@@ -158,6 +159,7 @@ export function App() {
           <HistoryScreen
             workouts={workouts}
             unit={userSettings.unit}
+            schedulePreference={userSettings.schedulePreference}
             onRefresh={loadData}
             onStartWorkout={() => setActiveTab('workout')}
           />
