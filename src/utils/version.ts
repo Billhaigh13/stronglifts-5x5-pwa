@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.4.4';
+export const APP_VERSION = '1.4.5';
 export const APP_CHANNEL: 'prod' | 'test' =
   (import.meta.env.VITE_APP_CHANNEL as 'prod' | 'test') ||
   (APP_VERSION.includes('test') ? 'test' : 'prod');

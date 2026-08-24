@@ -18,7 +18,7 @@ describe('Mobility Data & Routines', () => {
       expect(pose.whereYouShouldFeelIt, `Missing feeling guide on ${key}`).toBeTruthy();
       expect(pose.beginnerModification, `Missing beginner modification on ${key}`).toBeTruthy();
       expect(pose.breathingCue, `Missing breathing cue on ${key}`).toBeTruthy();
-      expect(pose.animationUrl, `Missing animationUrl on ${key}`).toMatch(/^\/mobility\/[a-z0-9_]+\.gif$/);
+      expect(pose.animationUrl, `Missing animationUrl on ${key}`).toMatch(/^\/mobility\/[a-z0-9_]+\.(webm|mp4|gif)$/);
     });
   });
 
