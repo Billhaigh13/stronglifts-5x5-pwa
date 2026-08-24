@@ -19,9 +19,8 @@ describe('ExerciseGuideModal Component', () => {
     expect(screen.getByText(/Glutes \(Primary\)/i)).toBeInTheDocument();
     expect(screen.getByText('Hamstrings')).toBeInTheDocument();
 
-    const image = screen.getByAltText(/Barbell Squat demonstration/i) as HTMLImageElement;
-    expect(image).toBeInTheDocument();
-    expect(image.src).toContain('/exercises/squat.gif');
+    expect(screen.getByText(/Phase 1: Setup/i)).toBeInTheDocument();
+    expect(screen.getByText(/Phase 2: Apex/i)).toBeInTheDocument();
 
     // Default tab shows setup & execution steps
     expect(screen.getByText(/1. Setup & Stance/i)).toBeInTheDocument();
