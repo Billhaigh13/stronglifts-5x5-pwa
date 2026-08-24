@@ -15,6 +15,16 @@ describe('ExerciseAnimation Component', () => {
     expect(screen.getByText(/Phase 2: Apex/i)).toBeInTheDocument();
   });
 
+  it('renders video element when src ends with .webm or .mp4', () => {
+    const { container } = render(
+      <ExerciseAnimation src="/exercises/squat.webm" alt="Barbell Squat" />
+    );
+    const video = container.querySelector('video');
+    expect(video).toBeInTheDocument();
+    expect(video).toHaveAttribute('src', '/exercises/squat.webm');
+    expect(video).toHaveAttribute('loop');
+  });
+
   it('renders fallback placeholder when src and exerciseId are missing', () => {
     render(<ExerciseAnimation src="" alt="Missing animation" />);
     expect(screen.getByText(/Form Demo/i)).toBeInTheDocument();
