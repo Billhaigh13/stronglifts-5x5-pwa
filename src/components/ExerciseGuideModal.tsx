@@ -54,9 +54,11 @@ export const ExerciseGuideModal: React.FC<ExerciseGuideModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 my-2 no-scrollbar">
-          {/* Looping Animation Container */}
+          {/* Minimalist Biomechanical Vector Illustration */}
           <div className="relative w-full rounded-2xl bg-gym-surface/80 border border-gym-border/60 overflow-hidden flex items-center justify-center min-h-[220px] max-h-[260px] shadow-inner p-2">
             <ExerciseAnimation
+              exerciseId={guide.id}
+              category="strength"
               src={guide.animationUrl}
               alt={`${guide.name} demonstration`}
               className="w-full h-full max-h-[250px] object-contain"

@@ -290,21 +290,21 @@ export const MobilityPlayerModal: React.FC<MobilityPlayerModalProps> = ({
 
             {/* Visual Animation & Countdown Display */}
             <div className="flex items-center gap-3 bg-gym-bg/80 p-2.5 rounded-2xl border border-purple-500/20 shrink-0">
-              {/* Looping Animation Card */}
-              {currentPose.animationUrl && (
-                <div className="w-28 h-28 bg-slate-950/90 rounded-xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shrink-0 shadow-inner">
-                  <ExerciseAnimation
-                    src={currentPose.animationUrl}
-                    alt={currentPose.name}
-                    className="w-full h-full object-contain mix-blend-screen"
-                  />
-                  {currentStep.side && (
-                    <div className="absolute top-1 left-1 bg-black/75 backdrop-blur-md px-1.5 py-0.2 rounded border border-purple-500/40 text-[8px] font-black uppercase text-purple-300">
-                      {currentStep.side}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Clean Vector Form Illustration */}
+              <div className="w-32 h-32 bg-slate-950/90 rounded-2xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shrink-0 shadow-inner p-1">
+                <ExerciseAnimation
+                  exerciseId={currentPose.id}
+                  category="mobility"
+                  src={currentPose.animationUrl}
+                  alt={currentPose.name}
+                  className="w-full h-full object-contain"
+                />
+                {currentStep.side && (
+                  <div className="absolute top-1 left-1 bg-black/75 backdrop-blur-md px-1.5 py-0.2 rounded border border-purple-500/40 text-[8px] font-black uppercase text-purple-300">
+                    {currentStep.side}
+                  </div>
+                )}
+              </div>
 
               {/* Circular Countdown Progress Ring */}
               <div className="flex-1 flex flex-col items-center justify-center">

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Dumbbell } from 'lucide-react';
+import { ExerciseVectorIllustration } from './illustrations/ExerciseVectorIllustration';
 
 interface ExerciseAnimationProps {
+  exerciseId?: string;
+  category?: 'strength' | 'mobility';
   src?: string;
   alt?: string;
   className?: string;
@@ -9,13 +12,38 @@ interface ExerciseAnimationProps {
 }
 
 export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
+  exerciseId,
+  category = 'strength',
   src,
   alt = 'Exercise demonstration',
-  className = 'w-full h-full object-contain mix-blend-screen',
+  className = 'w-full h-full object-contain',
   poster,
 }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // If an exercise ID is provided, render the modern minimalist vector illustration
+  if (exerciseId) {
+    return (
+      <ExerciseVectorIllustration
+        id={exerciseId}
+        category={category}
+        className={className}
+      />
+    );
+  }
+
+  // Also extract ID from src filename if available (e.g. /exercises/squat.gif -> squat)
+  const inferredId = src ? src.split('/').pop()?.replace(/\.[^/.]+$/, '') : null;
+  if (inferredId && inferredId !== 'placeholder') {
+    return (
+      <ExerciseVectorIllustration
+        id={inferredId}
+        category={category}
+        className={className}
+      />
+    );
+  }
 
   if (!src || hasError) {
     return (
