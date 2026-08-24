@@ -1,8 +1,9 @@
-import React from 'react';
-import { X, Check, Award, Zap } from 'lucide-react';
-import type { ProgramDefinition, ProgramId } from '../types';
+import React, { useState } from 'react';
+import { X, Check, Award, Zap, Info } from 'lucide-react';
+import type { ExerciseId, ProgramDefinition, ProgramId } from '../types';
 import { PROGRAM_DEFINITIONS, EXERCISE_DEFINITIONS } from '../utils/constants';
 import { triggerHaptic } from '../utils/haptics';
+import { ExerciseGuideModal } from './ExerciseGuideModal';
 
 interface ProgramSelectorModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export const ProgramSelectorModal: React.FC<ProgramSelectorModalProps> = ({
   activeProgramId,
   onSelectProgram,
 }) => {
+  const [previewGuideId, setPreviewGuideId] = useState<ExerciseId | null>(null);
+
   if (!isOpen) return null;
 
   const programs = Object.values(PROGRAM_DEFINITIONS) as ProgramDefinition[];
@@ -111,24 +114,38 @@ export const ProgramSelectorModal: React.FC<ProgramSelectorModalProps> = ({
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-bold text-gym-muted uppercase text-[10px] w-8">A:</span>
                     {program.routines.A.exerciseIds.map((exId) => (
-                      <span
+                      <button
                         key={exId}
-                        className="bg-gym-card px-2 py-0.5 rounded-md border border-gym-border/40 text-gym-text font-medium text-[10px]"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewGuideId(exId);
+                        }}
+                        className="bg-gym-card hover:bg-gym-cardHover px-2 py-0.5 rounded-md border border-gym-border/40 text-gym-text font-medium text-[10px] flex items-center gap-1 transition-colors tap-active"
+                        title={`View ${EXERCISE_DEFINITIONS[exId]?.name || exId} Guide`}
                       >
-                        {EXERCISE_DEFINITIONS[exId]?.name || exId}
-                      </span>
+                        <span>{EXERCISE_DEFINITIONS[exId]?.name || exId}</span>
+                        <Info className="w-2.5 h-2.5 text-gym-dimmed" />
+                      </button>
                     ))}
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-bold text-gym-muted uppercase text-[10px] w-8">B:</span>
                     {program.routines.B.exerciseIds.map((exId) => (
-                      <span
+                      <button
                         key={exId}
-                        className="bg-gym-card px-2 py-0.5 rounded-md border border-gym-border/40 text-gym-text font-medium text-[10px]"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewGuideId(exId);
+                        }}
+                        className="bg-gym-card hover:bg-gym-cardHover px-2 py-0.5 rounded-md border border-gym-border/40 text-gym-text font-medium text-[10px] flex items-center gap-1 transition-colors tap-active"
+                        title={`View ${EXERCISE_DEFINITIONS[exId]?.name || exId} Guide`}
                       >
-                        {EXERCISE_DEFINITIONS[exId]?.name || exId}
-                      </span>
+                        <span>{EXERCISE_DEFINITIONS[exId]?.name || exId}</span>
+                        <Info className="w-2.5 h-2.5 text-gym-dimmed" />
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -152,6 +169,11 @@ export const ProgramSelectorModal: React.FC<ProgramSelectorModalProps> = ({
           Close
         </button>
       </div>
+
+      <ExerciseGuideModal
+        exerciseId={previewGuideId}
+        onClose={() => setPreviewGuideId(null)}
+      />
     </div>
   );
 };
