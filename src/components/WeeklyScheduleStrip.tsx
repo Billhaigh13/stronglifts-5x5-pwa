@@ -10,6 +10,7 @@ interface WeeklyScheduleStripProps {
   lastWorkout?: WorkoutSession;
   onSelectDay?: (day: DayScheduleItem) => void;
   onOpenScheduleSettings?: () => void;
+  onStartMobility?: () => void;
 }
 
 export const WeeklyScheduleStrip: React.FC<WeeklyScheduleStripProps> = ({
@@ -18,6 +19,7 @@ export const WeeklyScheduleStrip: React.FC<WeeklyScheduleStripProps> = ({
   lastWorkout,
   onSelectDay,
   onOpenScheduleSettings,
+  onStartMobility,
 }) => {
   const weekDays = getWeeklySchedule(schedulePreference, new Date(), workouts, lastWorkout);
   const todayItem = weekDays.find((d) => d.isToday) || weekDays[0];
@@ -163,9 +165,17 @@ export const WeeklyScheduleStrip: React.FC<WeeklyScheduleStripProps> = ({
           </span>
         </div>
 
-        {todayItem.status === 'completed' && (
+        {todayItem.status === 'completed' ? (
           <span className="text-[10px] font-bold text-gym-muted">Logged</span>
-        )}
+        ) : todayItem.scheduledType === 'mobility' && onStartMobility ? (
+          <button
+            type="button"
+            onClick={onStartMobility}
+            className="py-1 px-2.5 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-wider rounded-lg shadow-sm tap-active"
+          >
+            Start Flow
+          </button>
+        ) : null}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, Download, X, ChevronRight, Dumbbell } from 'lucide-react';
-import type { ExerciseId, ExerciseProgressState, UserSettings, WorkoutSession } from './types';
+import type { ExerciseId, ExerciseProgressState, MobilityRoutine, UserSettings, WorkoutSession } from './types';
 import { DEFAULT_USER_SETTINGS } from './utils/constants';
 import {
   getAllExerciseProgress,
@@ -9,6 +9,7 @@ import {
   getUserSettings,
   initializeDatabase,
   saveUserSettings,
+  saveWorkout,
 } from './db';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
@@ -16,11 +17,13 @@ import { ActiveWorkout, type WorkoutLiveState } from './components/ActiveWorkout
 import { HistoryScreen } from './components/HistoryScreen';
 import { AnalyticsScreen } from './components/AnalyticsScreen';
 import { SettingsScreen } from './components/SettingsScreen';
+import { MobilityScreen } from './components/MobilityScreen';
+import { MobilityPlayerModal } from './components/MobilityPlayerModal';
 import { UpdateModal } from './components/UpdateModal';
 import { checkForAppUpdates, type ReleaseInfo } from './utils/version';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'workout' | 'history' | 'analytics' | 'settings'>('workout');
+  const [activeTab, setActiveTab] = useState<'workout' | 'mobility' | 'history' | 'analytics' | 'settings'>('workout');
   const [isInitialized, setIsInitialized] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [exerciseProgress, setExerciseProgress] = useState<Record<ExerciseId, ExerciseProgressState>>(
@@ -36,10 +39,37 @@ export function App() {
     type: 'A',
   });
 
+  // Mobility Flow state
+  const [activeMobilityRoutine, setActiveMobilityRoutine] = useState<MobilityRoutine | null>(null);
+  const [isMobilityPlayerOpen, setIsMobilityPlayerOpen] = useState(false);
+
   // Background update check
   const [availableRelease, setAvailableRelease] = useState<ReleaseInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+
+  const handleStartMobility = (routine: MobilityRoutine) => {
+    setActiveMobilityRoutine(routine);
+    setIsMobilityPlayerOpen(true);
+  };
+
+  const handleSaveMobilitySession = async (routine: MobilityRoutine, durationSeconds: number) => {
+    const session: WorkoutSession = {
+      type: 'A',
+      sessionCategory: 'mobility',
+      programName: routine.name,
+      date: new Date().toISOString(),
+      startTime: Date.now() - durationSeconds * 1000,
+      endTime: Date.now(),
+      durationSeconds,
+      completed: true,
+      exerciseLogs: [],
+      notes: `Completed guided ${routine.name} active recovery flow (${Math.round(durationSeconds / 60)}m).`,
+    };
+    await saveWorkout(session);
+    await loadData();
+    setActiveTab('history');
+  };
 
   const loadData = async () => {
     try {
@@ -139,6 +169,7 @@ export function App() {
             lastWorkout={lastWorkout}
             workouts={workouts}
             onWorkoutStateChange={setWorkoutState}
+            onStartMobilityRoutine={handleStartMobility}
             onSelectProgram={async (programId) => {
               const updated = { ...userSettings, activeProgramId: programId };
               setUserSettings(updated);
@@ -154,6 +185,12 @@ export function App() {
             }}
           />
         </div>
+
+        {activeTab === 'mobility' && (
+          <MobilityScreen
+            onStartRoutine={handleStartMobility}
+          />
+        )}
 
         {activeTab === 'history' && (
           <HistoryScreen
@@ -222,6 +259,13 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isWorkoutActive={workoutState.isActive}
+      />
+
+      <MobilityPlayerModal
+        routine={activeMobilityRoutine}
+        isOpen={isMobilityPlayerOpen}
+        onClose={() => setIsMobilityPlayerOpen(false)}
+        onComplete={handleSaveMobilitySession}
       />
 
       <UpdateModal

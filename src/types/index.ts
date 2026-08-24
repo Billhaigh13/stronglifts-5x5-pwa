@@ -174,3 +174,34 @@ export interface ProgressionResult {
   message: string;
   nextTargetReps?: number;
 }
+
+export type MobilityCategory = 'yoga' | 'stretching' | 'pilates' | 'mobility';
+
+export interface MobilityPose {
+  id: string;
+  name: string;
+  category: MobilityCategory;
+  targetMuscles: string[];
+  defaultDurationSeconds: number;
+  isBilateral: boolean;
+  cues: string[];
+  whereYouShouldFeelIt: string;
+  beginnerModification: string;
+  breathingCue: string;
+}
+
+export interface MobilityRoutinePose {
+  poseId: string;
+  durationSeconds?: number;
+}
+
+export interface MobilityRoutine {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  category: MobilityCategory;
+  estimatedMinutes: number;
+  badge?: string;
+  poses: MobilityRoutinePose[];
+}
