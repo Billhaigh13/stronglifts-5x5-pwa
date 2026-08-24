@@ -8,6 +8,7 @@ import {
 import type { MobilityCategory, MobilityPose, MobilityRoutine } from '../types';
 import { MOBILITY_POSES, MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { triggerHaptic } from '../utils/haptics';
+import { ExerciseAnimation } from './ExerciseAnimation';
 
 interface MobilityScreenProps {
   onStartRoutine: (routine: MobilityRoutine) => void;
@@ -210,12 +211,11 @@ export const MobilityScreen: React.FC<MobilityScreenProps> = ({
             <div className="flex-1 overflow-y-auto space-y-3.5 my-3 pr-1 no-scrollbar text-xs">
               {/* Pose Animation */}
               {selectedPoseForModal.animationUrl && (
-                <div className="w-full h-48 bg-slate-950/90 rounded-2xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shadow-inner">
-                  <img
+                <div className="w-full h-48 bg-slate-950/90 rounded-2xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shadow-inner p-2">
+                  <ExerciseAnimation
                     src={selectedPoseForModal.animationUrl}
                     alt={selectedPoseForModal.name}
                     className="w-full h-full object-contain mix-blend-screen"
-                    loading="eager"
                   />
                   {selectedPoseForModal.isBilateral && (
                     <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-md px-2 py-0.5 rounded-md border border-purple-500/40 text-[9px] font-bold text-purple-300">

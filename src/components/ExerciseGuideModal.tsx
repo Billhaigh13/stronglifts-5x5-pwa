@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Dumbbell, Sparkles, CheckCircle2, AlertTriangle, Wind, Layers, Activity } from 'lucide-react';
 import type { ExerciseId } from '../types';
 import { EXERCISE_GUIDES } from '../data/exerciseGuides';
+import { ExerciseAnimation } from './ExerciseAnimation';
 
 interface ExerciseGuideModalProps {
   exerciseId: ExerciseId | null;
@@ -54,12 +55,11 @@ export const ExerciseGuideModal: React.FC<ExerciseGuideModalProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 my-2 no-scrollbar">
           {/* Looping Animation Container */}
-          <div className="relative w-full rounded-2xl bg-gym-surface/80 border border-gym-border/60 overflow-hidden flex items-center justify-center min-h-[220px] max-h-[260px] shadow-inner">
-            <img
+          <div className="relative w-full rounded-2xl bg-gym-surface/80 border border-gym-border/60 overflow-hidden flex items-center justify-center min-h-[220px] max-h-[260px] shadow-inner p-2">
+            <ExerciseAnimation
               src={guide.animationUrl}
               alt={`${guide.name} demonstration`}
-              className="w-full h-full max-h-[260px] object-contain p-2"
-              loading="lazy"
+              className="w-full h-full max-h-[250px] object-contain"
             />
           </div>
 

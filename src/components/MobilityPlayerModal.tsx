@@ -18,6 +18,7 @@ import type { MobilityPose, MobilityRoutine } from '../types';
 import { MOBILITY_POSES } from '../data/mobilityRoutines';
 import { triggerHaptic } from '../utils/haptics';
 import { CelebrationBurst } from './CelebrationBurst';
+import { ExerciseAnimation } from './ExerciseAnimation';
 
 interface PlayerStep {
   pose: MobilityPose;
@@ -292,11 +293,10 @@ export const MobilityPlayerModal: React.FC<MobilityPlayerModalProps> = ({
               {/* Looping Animation Card */}
               {currentPose.animationUrl && (
                 <div className="w-28 h-28 bg-slate-950/90 rounded-xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shrink-0 shadow-inner">
-                  <img
+                  <ExerciseAnimation
                     src={currentPose.animationUrl}
                     alt={currentPose.name}
                     className="w-full h-full object-contain mix-blend-screen"
-                    loading="eager"
                   />
                   {currentStep.side && (
                     <div className="absolute top-1 left-1 bg-black/75 backdrop-blur-md px-1.5 py-0.2 rounded border border-purple-500/40 text-[8px] font-black uppercase text-purple-300">
