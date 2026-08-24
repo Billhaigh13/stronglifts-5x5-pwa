@@ -191,7 +191,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Dumbbells',
     primaryMuscles: ['Biceps Brachii'],
     secondaryMuscles: ['Brachialis', 'Brachioradialis (Forearms)'],
-    animationUrl: '/exercises/bicep_curl.gif',
+    animationUrl: '/exercises/bicep_curl.webm',
     overview: 'Classic arm accessory for building peaked biceps, forearm grip strength, and elbow flexor health.',
     setup: [
       'Stand tall holding a pair of dumbbells at your sides with arms fully extended.',
@@ -251,7 +251,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Parallel Dip Bars',
     primaryMuscles: ['Triceps', 'Lower Chest'],
     secondaryMuscles: ['Anterior Deltoids', 'Upper Chest', 'Core'],
-    animationUrl: '/exercises/dips.gif',
+    animationUrl: '/exercises/dips.webm',
     overview: 'The upper-body squat. Unmatched compound movement for tricep thickness, lower chest development, and lockout pressing power.',
     setup: [
       'Mount the parallel bars and support your full body weight with arms locked out straight.',
@@ -280,7 +280,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Flat Bench & EZ/Barbell',
     primaryMuscles: ['Triceps (Long Head & Medial Head)'],
     secondaryMuscles: ['Forearms', 'Front Deltoids'],
-    animationUrl: '/exercises/skullcrushers.gif',
+    animationUrl: '/exercises/skullcrushers.webm',
     overview: 'Direct tricep isolation exercise that emphasizes the long head of the triceps for massive arm girth and bench lockout support.',
     setup: [
       'Lie on a flat bench holding an EZ bar or barbell directly above your chest with shoulder-width overhand grip.',
@@ -339,7 +339,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Barbell or EZ-Curl Bar',
     primaryMuscles: ['Biceps Brachii'],
     secondaryMuscles: ['Brachialis', 'Brachioradialis', 'Forearms', 'Core'],
-    animationUrl: '/exercises/barbell_curl.gif',
+    animationUrl: '/exercises/barbell_curl.webm',
     overview: 'Heavy bilateral bicep builder that allows loading maximum weight onto the arms.',
     setup: [
       'Stand upright holding a barbell with an underhand (supinated) grip shoulder-width apart.',
@@ -368,7 +368,7 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     equipment: 'Gym Mat / Floor',
     primaryMuscles: ['Rectus Abdominis (Abs)', 'Transverse Abdominis (Deep Core)'],
     secondaryMuscles: ['Obliques', 'Glutes', 'Shoulders', 'Lower Back'],
-    animationUrl: '/exercises/plank.gif',
+    animationUrl: '/exercises/plank.webm',
     overview: 'Isometric core stability exercise that strengthens the abdominal wall and protects the lumbar spine against shearing forces.',
     setup: [
       'Lie face down on a mat and place your forearms on the floor with elbows directly underneath your shoulders.',
