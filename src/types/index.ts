@@ -184,6 +184,7 @@ export interface MobilityPose {
   targetMuscles: string[];
   defaultDurationSeconds: number;
   isBilateral: boolean;
+  animationUrl?: string;
   cues: string[];
   whereYouShouldFeelIt: string;
   beginnerModification: string;

@@ -8,6 +8,7 @@ import {
 import type { MobilityCategory, MobilityPose, MobilityRoutine } from '../types';
 import { MOBILITY_POSES, MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { triggerHaptic } from '../utils/haptics';
+import { ExerciseAnimation } from './ExerciseAnimation';
 
 interface MobilityScreenProps {
   onStartRoutine: (routine: MobilityRoutine) => void;
@@ -208,6 +209,22 @@ export const MobilityScreen: React.FC<MobilityScreenProps> = ({
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto space-y-3.5 my-3 pr-1 no-scrollbar text-xs">
+              {/* Pose Animation */}
+              {selectedPoseForModal.animationUrl && (
+                <div className="w-full h-48 bg-slate-950/90 rounded-2xl border border-purple-500/30 overflow-hidden flex items-center justify-center relative shadow-inner p-2">
+                  <ExerciseAnimation
+                    src={selectedPoseForModal.animationUrl}
+                    alt={selectedPoseForModal.name}
+                    className="w-full h-full object-contain mix-blend-screen"
+                  />
+                  {selectedPoseForModal.isBilateral && (
+                    <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-md px-2 py-0.5 rounded-md border border-purple-500/40 text-[9px] font-bold text-purple-300">
+                      Bilateral (Both Sides)
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block mb-1">
                   Step-by-Step Cues:
