@@ -84,11 +84,22 @@ export interface ExerciseLog {
   completed: boolean;
 }
 
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sun, 1 = Mon, ..., 6 = Sat
+export type SchedulePattern = 'mon_wed_fri' | 'tue_thu_sat' | 'every_other_day' | 'custom';
+
+export interface SchedulePreference {
+  pattern: SchedulePattern;
+  workoutDays: DayOfWeek[];
+  mobilityDays: DayOfWeek[];
+  restDays: DayOfWeek[];
+}
+
 export interface WorkoutSession {
   id?: number;
   type: WorkoutType;
   programId?: ProgramId;
   programName?: string;
+  sessionCategory?: 'strength' | 'mobility';
   date: string;
   startTime: number;
   endTime?: number;
@@ -126,6 +137,7 @@ export interface UserSettings {
   plateInventory: PlateInventoryItem[]; // e.g. [{ weight: 20, count: 2 }, { weight: 15, count: 2 }, ...]
   availablePlates?: number[]; // backwards compatibility fallback
   progressionConfigs?: Partial<Record<ExerciseId, ExerciseProgressionConfig>>;
+  schedulePreference?: SchedulePreference;
   defaultRestSecondsSuccess: number;
   defaultRestSecondsFailure: number;
   soundEnabled: boolean;

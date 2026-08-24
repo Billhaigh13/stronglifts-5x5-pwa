@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp, Info, Dumbbell } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp, Info, Dumbbell, Calendar } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
-import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, DEFAULT_SCHEDULE_PREFERENCE, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
 import { EXERCISE_GUIDES } from '../data/exerciseGuides';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
@@ -11,6 +11,7 @@ import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { ProgressionSettingsModal } from './ProgressionSettingsModal';
 import { BackupModal } from './BackupModal';
 import { ExerciseGuideModal } from './ExerciseGuideModal';
+import { ScheduleSettingsModal } from './ScheduleSettingsModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
@@ -27,6 +28,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [settings, setSettings] = useState<UserSettings>({
     ...userSettings,
     plateInventory: userSettings.plateInventory || DEFAULT_PLATE_INVENTORY,
+    schedulePreference: userSettings.schedulePreference || DEFAULT_SCHEDULE_PREFERENCE,
   });
 
   const [weights, setWeights] = useState<Record<ExerciseId, number>>(() => {
@@ -51,6 +53,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
   const [selectedGuideId, setSelectedGuideId] = useState<ExerciseId | null>(null);
 
@@ -301,6 +304,49 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <p className="text-[11px] text-gym-dimmed leading-relaxed">
               {activeProg.description}
             </p>
+          </div>
+        );
+      })()}
+
+      {/* Weekly Training Schedule Card */}
+      {(() => {
+        const schedule = settings.schedulePreference || DEFAULT_SCHEDULE_PREFERENCE;
+        const patternName =
+          schedule.pattern === 'mon_wed_fri'
+            ? 'Mon / Wed / Fri'
+            : schedule.pattern === 'tue_thu_sat'
+            ? 'Tue / Thu / Sat'
+            : schedule.pattern === 'every_other_day'
+            ? 'Every Other Day'
+            : 'Custom Schedule';
+
+        return (
+          <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gym-accent" />
+                  <span className="text-xs font-black uppercase tracking-wider text-gym-text">
+                    Weekly Training Cadence
+                  </span>
+                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gym-accent/20 text-gym-accent border border-gym-accent/40">
+                    {patternName}
+                  </span>
+                </div>
+                <div className="text-xs text-gym-dimmed mt-1">
+                  {schedule.workoutDays.length} Lifting Days • {schedule.mobilityDays.length} Mobility / Recovery Days
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsScheduleModalOpen(true)}
+                className="py-2 px-3 bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold rounded-xl flex items-center gap-1 tap-active"
+              >
+                <span>Edit</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         );
       })()}
@@ -832,6 +878,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       <ExerciseGuideModal
         exerciseId={selectedGuideId}
         onClose={() => setSelectedGuideId(null)}
+      />
+
+      <ScheduleSettingsModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        schedulePreference={settings.schedulePreference}
+        onSavePreference={async (newPref) => {
+          const updated = { ...settings, schedulePreference: newPref };
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
       />
     </div>
   );

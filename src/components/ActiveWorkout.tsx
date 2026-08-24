@@ -10,6 +10,8 @@ import { WorkoutSummaryModal } from './WorkoutSummaryModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { ProgressionSettingsModal } from './ProgressionSettingsModal';
 import { ExerciseGuideModal } from './ExerciseGuideModal';
+import { WeeklyScheduleStrip } from './WeeklyScheduleStrip';
+import { ScheduleSettingsModal } from './ScheduleSettingsModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -27,6 +29,7 @@ interface ActiveWorkoutProps {
   onWorkoutStateChange?: (state: WorkoutLiveState) => void;
   onUpdateUserSettings?: (settings: UserSettings) => Promise<void>;
   lastWorkout?: WorkoutSession;
+  workouts?: WorkoutSession[];
 }
 
 export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
@@ -37,6 +40,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   onWorkoutStateChange,
   onUpdateUserSettings,
   lastWorkout,
+  workouts = [],
 }) => {
   const activeProgram = PROGRAM_DEFINITIONS[userSettings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
 
@@ -55,6 +59,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   const [guideExerciseId, setGuideExerciseId] = useState<ExerciseId | null>(null);
   const [activeProgressionExId, setActiveProgressionExId] = useState<ExerciseId>('squat');
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
@@ -394,6 +399,14 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     <div className="pb-28 max-w-md mx-auto px-4 pt-3">
       {!isActive ? (
         <div className="space-y-4 animate-fadeIn">
+          {/* Weekly Schedule Strip */}
+          <WeeklyScheduleStrip
+            schedulePreference={userSettings.schedulePreference}
+            workouts={workouts}
+            lastWorkout={lastWorkout}
+            onOpenScheduleSettings={() => setIsScheduleModalOpen(true)}
+          />
+
           {/* Active Program Header Card */}
           <div
             onClick={() => setIsProgramModalOpen(true)}
@@ -627,6 +640,17 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       <ExerciseGuideModal
         exerciseId={guideExerciseId}
         onClose={() => setGuideExerciseId(null)}
+      />
+
+      <ScheduleSettingsModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        schedulePreference={userSettings.schedulePreference}
+        onSavePreference={async (newPref) => {
+          if (onUpdateUserSettings) {
+            await onUpdateUserSettings({ ...userSettings, schedulePreference: newPref });
+          }
+        }}
       />
     </div>
   );
