@@ -242,6 +242,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               onCycleReps={() => onCycleSetReps(exerciseLog.exerciseId, idx)}
               soundEnabled={soundEnabled}
               vibrationEnabled={vibrationEnabled}
+              isBodyweight={isBodyweight}
             />
           ))}
         </div>
