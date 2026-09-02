@@ -301,13 +301,21 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   };
 
   const handleToggleWarmupSet = (exerciseId: ExerciseId, setIndex: number) => {
+    const currentSet = warmupSetsMap[exerciseId]?.[setIndex];
+    const nextCompleted = currentSet ? !currentSet.completed : true;
+
     setWarmupSetsMap((prev) => {
       const sets = prev[exerciseId] ? [...prev[exerciseId]] : [];
       if (sets[setIndex]) {
-        sets[setIndex] = { ...sets[setIndex], completed: !sets[setIndex].completed };
+        sets[setIndex] = { ...sets[setIndex], completed: nextCompleted };
       }
       return { ...prev, [exerciseId]: sets };
     });
+
+    if (nextCompleted && userSettings.autoStartRestTimer) {
+      setRestTimerSeconds(userSettings.defaultRestSecondsSuccess);
+      setIsRestTimerActive(true);
+    }
   };
 
   const handleFinishWorkout = () => {
