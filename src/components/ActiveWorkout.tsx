@@ -232,25 +232,36 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       prev.map((log) => {
         if (log.exerciseId !== exerciseId) return log;
 
+        const isBodyweight = (log.exerciseId === 'pullups' || log.exerciseId === 'dips' || log.mode === 'bodyweight') && log.mode !== 'weighted';
         const targetRep = log.targetReps[setIndex] ?? 5;
         const currentRep = log.completedReps[setIndex];
         let nextRep: number | null;
 
-        if (currentRep === null) {
-          nextRep = targetRep;
-        } else if (currentRep === targetRep) {
-          nextRep = Math.max(0, targetRep - 1);
-        } else if (currentRep > 0) {
-          nextRep = currentRep - 1;
+        if (isBodyweight) {
+          if (currentRep === null) {
+            nextRep = 1;
+          } else if (currentRep >= 15) {
+            nextRep = null;
+          } else {
+            nextRep = currentRep + 1;
+          }
         } else {
-          nextRep = null;
+          if (currentRep === null) {
+            nextRep = targetRep;
+          } else if (currentRep === targetRep) {
+            nextRep = Math.max(0, targetRep - 1);
+          } else if (currentRep > 0) {
+            nextRep = currentRep - 1;
+          } else {
+            nextRep = null;
+          }
         }
 
         const nextCompleted = [...log.completedReps];
         nextCompleted[setIndex] = nextRep;
 
         if (nextRep !== null && userSettings.autoStartRestTimer) {
-          const isSuccess = nextRep >= targetRep;
+          const isSuccess = isBodyweight || nextRep >= targetRep;
           const restSeconds = isSuccess
             ? userSettings.defaultRestSecondsSuccess
             : userSettings.defaultRestSecondsFailure;

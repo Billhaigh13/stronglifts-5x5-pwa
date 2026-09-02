@@ -30,11 +30,16 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  const chartData: { date: string; weight: number; e1rm: number; label: string }[] = [];
+  const isBodyweightSelected =
+    (selectedExercise === 'pullups' || selectedExercise === 'dips') &&
+    (exerciseProgress[selectedExercise]?.mode === 'bodyweight' || !exerciseProgress[selectedExercise]?.currentWeight);
+
+  const chartData: { date: string; weight: number; totalReps: number; e1rm: number; label: string }[] = [];
 
   chronologicalWorkouts.forEach((w) => {
     const log = w.exerciseLogs.find((l) => l.exerciseId === selectedExercise);
     if (log && log.completedReps.length > 0) {
+      const totalReps = log.completedReps.reduce<number>((acc, r) => acc + (r || 0), 0);
       const maxRep = Math.max(...log.completedReps.map((r) => r || 0));
       const e1rm = calculate1RM(log.targetWeight, maxRep || 5);
       const dateObj = new Date(w.date);
@@ -43,6 +48,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
       chartData.push({
         date: w.date,
         weight: log.targetWeight,
+        totalReps,
         e1rm: e1rm,
         label,
       });
@@ -70,10 +76,10 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
   const chartWidth = 320;
   const padding = 25;
 
-  const weights = chartData.map((d) => d.weight);
-  const minWeight = weights.length > 0 ? Math.min(...weights) * 0.85 : 0;
-  const maxWeight = weights.length > 0 ? Math.max(...weights) * 1.15 : 100;
-  const weightRange = Math.max(1, maxWeight - minWeight);
+  const chartValues = chartData.map((d) => (isBodyweightSelected ? d.totalReps : d.weight));
+  const minVal = chartValues.length > 0 ? Math.min(...chartValues) * 0.85 : 0;
+  const maxVal = chartValues.length > 0 ? Math.max(...chartValues) * 1.15 : (isBodyweightSelected ? 15 : 100);
+  const valRange = Math.max(1, maxVal - minVal);
 
   const getX = (index: number) => {
     if (chartData.length <= 1) return chartWidth / 2;
@@ -81,10 +87,10 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
   };
 
   const getY = (val: number) => {
-    return chartHeight - padding - ((val - minWeight) / weightRange) * (chartHeight - padding * 2);
+    return chartHeight - padding - ((val - minVal) / valRange) * (chartHeight - padding * 2);
   };
 
-  const points = chartData.map((d, idx) => `${getX(idx)},${getY(d.weight)}`).join(' ');
+  const points = chartData.map((d, idx) => `${getX(idx)},${getY(isBodyweightSelected ? d.totalReps : d.weight)}`).join(' ');
 
   return (
     <div
@@ -129,12 +135,14 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-gym-accent" />
             <h3 className="text-sm font-extrabold text-gym-text uppercase tracking-wider">
-              Weight Progression Over Time
+              {isBodyweightSelected ? 'Total Reps Progression' : 'Weight Progression Over Time'}
             </h3>
           </div>
           {chartData.length > 0 && (
             <span className="text-xs font-mono font-bold text-gym-accent">
-              Current: {exerciseProgress[selectedExercise]?.currentWeight || EXERCISE_DEFINITIONS[selectedExercise].defaultWeight} {unit}
+              {isBodyweightSelected
+                ? `Last: ${chartData[chartData.length - 1].totalReps} total reps`
+                : `Current: ${exerciseProgress[selectedExercise]?.currentWeight || EXERCISE_DEFINITIONS[selectedExercise].defaultWeight} ${unit}`}
             </span>
           )}
         </div>
@@ -201,7 +209,8 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
               {/* Data points */}
               {chartData.map((d, idx) => {
                 const cx = getX(idx);
-                const cy = getY(d.weight);
+                const val = isBodyweightSelected ? d.totalReps : d.weight;
+                const cy = getY(val);
 
                 return (
                   <g key={idx} className="group cursor-pointer">
@@ -230,7 +239,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
                       fontFamily="monospace"
                       textAnchor="middle"
                     >
-                      {d.weight}
+                      {isBodyweightSelected ? `${d.totalReps}r` : d.weight}
                     </text>
                   </g>
                 );
@@ -293,6 +302,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
           {exerciseIds.map((exId) => {
             const def = EXERCISE_DEFINITIONS[exId];
             const prog = exerciseProgress[exId];
+            const isBodyweightEx = (exId === 'pullups' || exId === 'dips') && (prog?.mode === 'bodyweight' || !prog?.currentWeight);
             const prWeight = prog?.allTimePRWeight || def.defaultWeight;
             const prReps = prog?.allTimePRReps || (typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5);
             const est1RM = calculate1RM(prWeight, prReps);
@@ -307,18 +317,27 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
                     {def.name}
                   </div>
                   <div className="text-[11px] font-mono text-gym-muted mt-0.5">
-                    Best Set: <span className="text-gym-text font-bold">{prReps} reps @ {prWeight} {unit}</span>
+                    {isBodyweightEx ? (
+                      <span className="text-gym-text font-bold">Best Rep PR: {prReps} reps</span>
+                    ) : (
+                      <>Best Set: <span className="text-gym-text font-bold">{prReps} reps @ {prWeight} {unit}</span></>
+                    )}
                   </div>
                 </div>
 
                 <div className="text-right">
                   <div className="text-xs font-mono font-black text-gym-gold flex items-center justify-end gap-1">
                     <Sparkles className="w-3 h-3" />
-                    {prWeight} {unit}
+                    {isBodyweightEx ? `${prReps} Reps` : `${prWeight} ${unit}`}
                   </div>
-                  {exId !== 'bicep_curl' && (
+                  {exId !== 'bicep_curl' && !isBodyweightEx && (
                     <div className="text-[10px] font-mono text-gym-dimmed">
                       Est. 1RM: ~{est1RM} {unit}
+                    </div>
+                  )}
+                  {isBodyweightEx && (
+                    <div className="text-[10px] font-mono text-gym-dimmed">
+                      Bodyweight
                     </div>
                   )}
                 </div>
