@@ -77,8 +77,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }
   };
 
-  const isCompletedAll = exerciseLog.completedReps.length === exerciseLog.targetReps.length &&
-    exerciseLog.completedReps.every((r, idx) => r !== null && r >= exerciseLog.targetReps[idx]);
+  const isBodyweight = (exerciseLog.exerciseId === 'pullups' || exerciseLog.exerciseId === 'dips' || exerciseLog.mode === 'bodyweight') && exerciseLog.mode !== 'weighted';
+
+  const isCompletedAll = isBodyweight
+    ? exerciseLog.completedReps.length > 0 && exerciseLog.completedReps.every((r) => r !== null)
+    : exerciseLog.completedReps.length === exerciseLog.targetReps.length &&
+      exerciseLog.completedReps.every((r, idx) => r !== null && r >= exerciseLog.targetReps[idx]);
 
   return (
     <div className={`p-4 rounded-3xl border transition-all duration-200 ${
@@ -110,9 +114,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[11px] font-semibold text-gym-muted">
-              {def.defaultSets}×{typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 'AMRAP'}
+              {isBodyweight
+                ? `${def.defaultSets} Sets • Progressive Reps`
+                : `${def.defaultSets}×${typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 'AMRAP'}`}
             </span>
-            {progressState && progressState.consecutiveFailures > 0 && (
+            {progressState && progressState.consecutiveFailures > 0 && !isBodyweight && (
               <span className="text-[10px] bg-gym-warning/20 text-gym-warning font-bold px-1.5 py-0.2 rounded">
                 Attempt {progressState.consecutiveFailures + 1}/{progressionConfig?.failuresBeforeDeload || 3}
               </span>
@@ -131,8 +137,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               <span>
                 {progressionConfig.strategy === 'double_progression'
                   ? `${progressionConfig.repRangeMin || 8}–${progressionConfig.repRangeMax || 12} Rep Ladder`
-                  : progressionConfig.strategy === 'bodyweight_reps'
-                  ? `AMRAP → +${progressionConfig.increment}${unit}`
+                  : isBodyweight
+                  ? `Progressive Reps (Beat Last Session)`
                   : `+${progressionConfig.increment} ${unit} / pass`}
               </span>
             </button>

@@ -253,6 +253,30 @@ describe('calculateNextProgression', () => {
       expect(result.message).toContain('Logged 21 total bodyweight reps');
     });
 
+    it('encourages user aiming for +1 rep on low bodyweight total reps', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'pullups',
+        exerciseName: 'Pull-ups / Chin-ups',
+        targetWeight: 0,
+        mode: 'bodyweight',
+        targetReps: [10, 10, 10],
+        completedReps: [2, 1, 1],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'pullups',
+        currentWeight: 0,
+        mode: 'bodyweight',
+        consecutiveFailures: 0,
+        allTimePRWeight: 0,
+        allTimePRReps: 2,
+      };
+
+      const result = calculateNextProgression('pullups', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(0);
+      expect(result.message).toContain('Logged 4 total bodyweight reps. Aim for 5+ reps next time!');
+    });
+
     it('advances weighted pull-ups by 1.25kg on 3x5 success', () => {
       const log: ExerciseLog = {
         exerciseId: 'pullups',
