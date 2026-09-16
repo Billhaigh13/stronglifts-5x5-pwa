@@ -34,6 +34,9 @@ android {
         versionCode appVersionInfo.code
         versionName appVersionInfo.name
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [
+            appName: "StrongLifts 5x5"
+        ]
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
@@ -53,9 +56,17 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            manifestPlaceholders = [
+                appName: "StrongLifts 5x5"
+            ]
         }
         debug {
             signingConfig signingConfigs.release
+            applicationIdSuffix ".test"
+            versionNameSuffix "-test"
+            manifestPlaceholders = [
+                appName: "StrongLifts 5x5 (Test)"
+            ]
         }
     }
 }

@@ -150,7 +150,9 @@ export function calculateNextProgression(
         isDeload: false,
         message: allSetsHitTarget
           ? `Solid work! ${totalReps} total reps logged. Ready for Weighted (+${increment}kg)!`
-          : `Logged ${totalReps} total bodyweight reps. Aim for 3×${targetPerSet}.`,
+          : totalReps > 0
+          ? `Great effort! Logged ${totalReps} total bodyweight reps. Aim for ${totalReps + 1}+ reps next time!`
+          : `Logged 0 reps. Keep pushing! Aim for 1 rep next time.`,
       };
     }
   }

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp } from 'lucide-react';
+import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp, Info, Dumbbell, Calendar } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
-import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, DEFAULT_SCHEDULE_PREFERENCE, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { EXERCISE_GUIDES } from '../data/exerciseGuides';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
-import { exportDatabaseToJSON, importDatabaseFromJSON } from '../utils/exportImport';
 import { triggerHaptic } from '../utils/haptics';
 import { UpdateModal } from './UpdateModal';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { ProgressionSettingsModal } from './ProgressionSettingsModal';
+import { BackupModal } from './BackupModal';
+import { ExerciseGuideModal } from './ExerciseGuideModal';
+import { ScheduleSettingsModal } from './ScheduleSettingsModal';
 import { APP_VERSION, checkForAppUpdates, type ReleaseInfo } from '../utils/version';
 
 interface SettingsScreenProps {
@@ -25,6 +28,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [settings, setSettings] = useState<UserSettings>({
     ...userSettings,
     plateInventory: userSettings.plateInventory || DEFAULT_PLATE_INVENTORY,
+    schedulePreference: userSettings.schedulePreference || DEFAULT_SCHEDULE_PREFERENCE,
   });
 
   const [weights, setWeights] = useState<Record<ExerciseId, number>>(() => {
@@ -49,6 +53,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
+  const [selectedGuideId, setSelectedGuideId] = useState<ExerciseId | null>(null);
 
   const handleSaveAll = async () => {
     triggerHaptic('medium');
@@ -153,28 +160,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     const updated = settings.plateInventory.filter((p) => p.weight !== weight);
     setSettings({ ...settings, plateInventory: updated });
     triggerHaptic('light');
-  };
-
-  const handleExport = async () => {
-    triggerHaptic('medium');
-    await exportDatabaseToJSON();
-  };
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    triggerHaptic('medium');
-    setImportStatus('Importing data...');
-    const result = await importDatabaseFromJSON(file);
-
-    if (result.success) {
-      setImportStatus(result.message);
-      onSettingsUpdated();
-    } else {
-      setImportStatus(`Error: ${result.message}`);
-    }
-    setTimeout(() => setImportStatus(null), 4000);
   };
 
   const handleSeedDemo = async () => {
@@ -323,6 +308,49 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         );
       })()}
 
+      {/* Weekly Training Schedule Card */}
+      {(() => {
+        const schedule = settings.schedulePreference || DEFAULT_SCHEDULE_PREFERENCE;
+        const patternName =
+          schedule.pattern === 'mon_wed_fri'
+            ? 'Mon / Wed / Fri'
+            : schedule.pattern === 'tue_thu_sat'
+            ? 'Tue / Thu / Sat'
+            : schedule.pattern === 'every_other_day'
+            ? 'Every Other Day'
+            : 'Custom Schedule';
+
+        return (
+          <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gym-accent" />
+                  <span className="text-xs font-black uppercase tracking-wider text-gym-text">
+                    Weekly Training Cadence
+                  </span>
+                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gym-accent/20 text-gym-accent border border-gym-accent/40">
+                    {patternName}
+                  </span>
+                </div>
+                <div className="text-xs text-gym-dimmed mt-1">
+                  {schedule.workoutDays.length} Lifting Days • {schedule.mobilityDays.length} Mobility / Recovery Days
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsScheduleModalOpen(true)}
+                className="py-2 px-3 bg-gym-surface hover:bg-gym-cardHover text-gym-accent border border-gym-border text-xs font-bold rounded-xl flex items-center gap-1 tap-active"
+              >
+                <span>Edit</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Weight Progression & Increments Rules Card */}
       {(() => {
         const configs = settings.progressionConfigs || DEFAULT_PROGRESSION_CONFIGS;
@@ -399,6 +427,47 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </div>
         );
       })()}
+
+      {/* Movement Library & Exercise Guides Card */}
+      <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Dumbbell className="w-4 h-4 text-gym-accent" />
+              <span className="text-xs font-black uppercase tracking-wider text-gym-text">
+                Movement Library & Form Guides
+              </span>
+            </div>
+            <div className="text-[11px] text-gym-dimmed mt-0.5">
+              Looping 3D animations, setup cues & breathing technique
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+          {(Object.keys(EXERCISE_GUIDES) as ExerciseId[]).map((exId) => {
+            const guide = EXERCISE_GUIDES[exId];
+            return (
+              <button
+                key={exId}
+                type="button"
+                onClick={() => setSelectedGuideId(exId)}
+                className="bg-gym-bg/80 hover:bg-gym-surface p-2.5 rounded-xl border border-gym-border/60 text-left transition-all group tap-active"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gym-text group-hover:text-gym-accent transition-colors truncate">
+                    {guide.name}
+                  </span>
+                  <Info className="w-3 h-3 text-gym-dimmed group-hover:text-gym-accent shrink-0 ml-1" />
+                </div>
+                <div className="text-[10px] text-gym-muted truncate mt-0.5">
+                  {guide.primaryMuscles.join(', ')}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Plate Inventory Management Card */}
       <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
@@ -716,23 +785,21 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={handleExport}
+            onClick={() => setIsBackupModalOpen(true)}
             className="py-2.5 px-3 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-text border border-gym-border text-xs font-bold flex items-center justify-center gap-2 tap-active"
           >
             <Download className="w-4 h-4 text-gym-cyan" />
-            Export JSON
+            Export & Backup Hub
           </button>
 
-          <label className="py-2.5 px-3 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-text border border-gym-border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer tap-active">
+          <button
+            type="button"
+            onClick={() => setIsBackupModalOpen(true)}
+            className="py-2.5 px-3 rounded-xl bg-gym-surface hover:bg-gym-cardHover text-gym-text border border-gym-border text-xs font-bold flex items-center justify-center gap-2 tap-active"
+          >
             <Upload className="w-4 h-4 text-gym-accent" />
-            Import JSON
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportFile}
-              className="hidden"
-            />
-          </label>
+            Import / Restore
+          </button>
         </div>
 
         <div className="pt-2 border-t border-gym-border/40 space-y-2">
@@ -792,6 +859,33 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         unit={settings.unit}
         onSaveConfigs={async (newConfigs) => {
           const updated = { ...settings, progressionConfigs: newConfigs };
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
+      />
+
+      <BackupModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        onDataRestored={() => {
+          onSettingsUpdated();
+          setImportStatus('Data restored successfully!');
+          setTimeout(() => setImportStatus(null), 4000);
+        }}
+      />
+
+      <ExerciseGuideModal
+        exerciseId={selectedGuideId}
+        onClose={() => setSelectedGuideId(null)}
+      />
+
+      <ScheduleSettingsModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        schedulePreference={settings.schedulePreference}
+        onSavePreference={async (newPref) => {
+          const updated = { ...settings, schedulePreference: newPref };
           setSettings(updated);
           await saveUserSettings(updated);
           onSettingsUpdated();

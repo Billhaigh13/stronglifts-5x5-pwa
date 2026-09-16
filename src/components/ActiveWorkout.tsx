@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
+import type { ExerciseId, ExerciseLog, ExerciseProgressState, MobilityRoutine, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
 import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
 import { ExerciseCard } from './ExerciseCard';
@@ -9,6 +10,9 @@ import { RestTimer } from './RestTimer';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
 import { ProgramSelectorModal } from './ProgramSelectorModal';
 import { ProgressionSettingsModal } from './ProgressionSettingsModal';
+import { ExerciseGuideModal } from './ExerciseGuideModal';
+import { WeeklyScheduleStrip } from './WeeklyScheduleStrip';
+import { ScheduleSettingsModal } from './ScheduleSettingsModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -25,7 +29,9 @@ interface ActiveWorkoutProps {
   onSelectProgram: (programId: ProgramId) => void;
   onWorkoutStateChange?: (state: WorkoutLiveState) => void;
   onUpdateUserSettings?: (settings: UserSettings) => Promise<void>;
+  onStartMobilityRoutine?: (routine: MobilityRoutine) => void;
   lastWorkout?: WorkoutSession;
+  workouts?: WorkoutSession[];
 }
 
 export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
@@ -35,7 +41,9 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   onSelectProgram,
   onWorkoutStateChange,
   onUpdateUserSettings,
+  onStartMobilityRoutine,
   lastWorkout,
+  workouts = [],
 }) => {
   const activeProgram = PROGRAM_DEFINITIONS[userSettings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
 
@@ -54,6 +62,8 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState<boolean>(false);
   const [isProgressionModalOpen, setIsProgressionModalOpen] = useState<boolean>(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
+  const [guideExerciseId, setGuideExerciseId] = useState<ExerciseId | null>(null);
   const [activeProgressionExId, setActiveProgressionExId] = useState<ExerciseId>('squat');
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
 
@@ -222,25 +232,36 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       prev.map((log) => {
         if (log.exerciseId !== exerciseId) return log;
 
+        const isBodyweight = (log.exerciseId === 'pullups' || log.exerciseId === 'dips' || log.mode === 'bodyweight') && log.mode !== 'weighted';
         const targetRep = log.targetReps[setIndex] ?? 5;
         const currentRep = log.completedReps[setIndex];
         let nextRep: number | null;
 
-        if (currentRep === null) {
-          nextRep = targetRep;
-        } else if (currentRep === targetRep) {
-          nextRep = Math.max(0, targetRep - 1);
-        } else if (currentRep > 0) {
-          nextRep = currentRep - 1;
+        if (isBodyweight) {
+          if (currentRep === null) {
+            nextRep = 1;
+          } else if (currentRep >= 15) {
+            nextRep = null;
+          } else {
+            nextRep = currentRep + 1;
+          }
         } else {
-          nextRep = null;
+          if (currentRep === null) {
+            nextRep = targetRep;
+          } else if (currentRep === targetRep) {
+            nextRep = Math.max(0, targetRep - 1);
+          } else if (currentRep > 0) {
+            nextRep = currentRep - 1;
+          } else {
+            nextRep = null;
+          }
         }
 
         const nextCompleted = [...log.completedReps];
         nextCompleted[setIndex] = nextRep;
 
         if (nextRep !== null && userSettings.autoStartRestTimer) {
-          const isSuccess = nextRep >= targetRep;
+          const isSuccess = isBodyweight || nextRep >= targetRep;
           const restSeconds = isSuccess
             ? userSettings.defaultRestSecondsSuccess
             : userSettings.defaultRestSecondsFailure;
@@ -291,13 +312,21 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   };
 
   const handleToggleWarmupSet = (exerciseId: ExerciseId, setIndex: number) => {
+    const currentSet = warmupSetsMap[exerciseId]?.[setIndex];
+    const nextCompleted = currentSet ? !currentSet.completed : true;
+
     setWarmupSetsMap((prev) => {
       const sets = prev[exerciseId] ? [...prev[exerciseId]] : [];
       if (sets[setIndex]) {
-        sets[setIndex] = { ...sets[setIndex], completed: !sets[setIndex].completed };
+        sets[setIndex] = { ...sets[setIndex], completed: nextCompleted };
       }
       return { ...prev, [exerciseId]: sets };
     });
+
+    if (nextCompleted && userSettings.autoStartRestTimer) {
+      setRestTimerSeconds(userSettings.defaultRestSecondsSuccess);
+      setIsRestTimerActive(true);
+    }
   };
 
   const handleFinishWorkout = () => {
@@ -392,6 +421,15 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     <div className="pb-28 max-w-md mx-auto px-4 pt-3">
       {!isActive ? (
         <div className="space-y-4 animate-fadeIn">
+          {/* Weekly Schedule Strip */}
+          <WeeklyScheduleStrip
+            schedulePreference={userSettings.schedulePreference}
+            workouts={workouts}
+            lastWorkout={lastWorkout}
+            onOpenScheduleSettings={() => setIsScheduleModalOpen(true)}
+            onStartMobility={() => onStartMobilityRoutine?.(MOBILITY_ROUTINES[0])}
+          />
+
           {/* Active Program Header Card */}
           <div
             onClick={() => setIsProgramModalOpen(true)}
@@ -562,6 +600,9 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                   setActiveProgressionExId(exId);
                   setIsProgressionModalOpen(true);
                 }}
+                onOpenGuideModal={(exId) => {
+                  setGuideExerciseId(exId);
+                }}
               />
             ))}
           </div>
@@ -615,6 +656,22 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         onSaveConfigs={async (newConfigs) => {
           if (onUpdateUserSettings) {
             await onUpdateUserSettings({ ...userSettings, progressionConfigs: newConfigs });
+          }
+        }}
+      />
+
+      <ExerciseGuideModal
+        exerciseId={guideExerciseId}
+        onClose={() => setGuideExerciseId(null)}
+      />
+
+      <ScheduleSettingsModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        schedulePreference={userSettings.schedulePreference}
+        onSavePreference={async (newPref) => {
+          if (onUpdateUserSettings) {
+            await onUpdateUserSettings({ ...userSettings, schedulePreference: newPref });
           }
         }}
       />

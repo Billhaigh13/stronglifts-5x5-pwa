@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import confetti from 'canvas-confetti';
 import { Trophy, CheckCircle2, TrendingUp, AlertTriangle, ArrowRight, Sparkles, Clock, Dumbbell } from 'lucide-react';
 import type { ExerciseLog, ProgressionResult, WorkoutType } from '../types';
 import { soundEngine } from '../utils/audio';
 import { triggerHaptic } from '../utils/haptics';
+import { CelebrationBurst } from './CelebrationBurst';
 
 interface WorkoutSummaryModalProps {
   isOpen: boolean;
@@ -32,30 +32,6 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
     if (isOpen) {
       soundEngine.playVictory();
       triggerHaptic('pr');
-
-      // Run confetti smoothly in next animation frame with short duration to prevent GPU hanging
-      const timer = setTimeout(() => {
-        try {
-          confetti({
-            particleCount: 50,
-            spread: 65,
-            origin: { y: 0.65 },
-            colors: ['#10b981', '#06b6d4', '#fbbf24', '#ffffff'],
-            ticks: 80,
-            disableForReducedMotion: true,
-            zIndex: 9999,
-          });
-        } catch (e) {
-          console.warn('Confetti effect failed', e);
-        }
-      }, 100);
-
-      return () => {
-        clearTimeout(timer);
-        try {
-          confetti.reset();
-        } catch {}
-      };
     }
   }, [isOpen]);
 
@@ -73,16 +49,24 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
   }, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-      <div className="bg-gym-card w-full max-w-md rounded-3xl border border-gym-border shadow-2xl p-5 my-auto max-h-[92vh] flex flex-col">
-        <div className="text-center pb-4 border-b border-gym-border/60 shrink-0">
-          <div className="w-16 h-16 rounded-2xl bg-gym-accent/20 border-2 border-gym-accent/40 text-gym-accent mx-auto flex items-center justify-center mb-2.5 shadow-glow-emerald">
-            <Trophy className="w-8 h-8 animate-bounce" />
+    <div
+      data-testid="workout-summary-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 animate-fadeIn overflow-y-auto"
+    >
+      <div className="bg-gym-card w-full max-w-md rounded-3xl border border-gym-border shadow-2xl p-5 my-auto max-h-[92vh] flex flex-col relative overflow-hidden">
+        <div className="text-center pb-4 border-b border-gym-border/60 shrink-0 relative">
+          {/* Zero-lag GPU celebration burst */}
+          <CelebrationBurst />
+
+          {/* Tada Trophy Pop */}
+          <div className="w-16 h-16 rounded-2xl bg-gym-accent/20 border-2 border-gym-accent/40 text-gym-accent mx-auto flex items-center justify-center mb-2.5 shadow-glow-emerald animate-tada relative z-10">
+            <Trophy className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-black text-gym-text tracking-tight">
+
+          <h2 className="text-2xl font-black text-gym-text tracking-tight relative z-10">
             Workout {workoutType} Complete!
           </h2>
-          <p className="text-xs font-semibold text-gym-accent flex items-center justify-center gap-1 mt-0.5">
+          <p className="text-xs font-semibold text-gym-accent flex items-center justify-center gap-1 mt-0.5 relative z-10">
             <Sparkles className="w-3.5 h-3.5" /> Great job crushing your session today!
           </p>
         </div>
@@ -113,7 +97,7 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 my-1">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 my-1 no-scrollbar">
           <div className="text-xs font-bold uppercase tracking-wider text-gym-muted mb-2">
             Next Session Progression Updates:
           </div>
@@ -185,12 +169,14 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
 
         <div className="mt-4 flex gap-2 shrink-0">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 py-3 bg-gym-surface hover:bg-gym-cardHover text-gym-muted font-bold text-xs uppercase rounded-xl border border-gym-border tap-active"
           >
             Review Sets
           </button>
           <button
+            type="button"
             onClick={() => onSave(notes)}
             className="flex-2 py-3 bg-gym-accent hover:bg-emerald-500 text-gym-bg font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-glow-emerald tap-active flex items-center justify-center gap-1.5"
           >

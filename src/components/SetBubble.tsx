@@ -10,6 +10,7 @@ interface SetBubbleProps {
   onCycleReps: (setIndex: number) => void;
   soundEnabled?: boolean;
   vibrationEnabled?: boolean;
+  isBodyweight?: boolean;
 }
 
 export const SetBubble: React.FC<SetBubbleProps> = ({
@@ -19,6 +20,7 @@ export const SetBubble: React.FC<SetBubbleProps> = ({
   onCycleReps,
   soundEnabled = true,
   vibrationEnabled = true,
+  isBodyweight = false,
 }) => {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -31,8 +33,12 @@ export const SetBubble: React.FC<SetBubbleProps> = ({
     onCycleReps(setIndex);
   };
 
-  const isSuccess = completedReps !== null && completedReps >= targetReps;
-  const isFailed = completedReps !== null && completedReps < targetReps;
+  const isSuccess = isBodyweight
+    ? completedReps !== null && completedReps > 0
+    : completedReps !== null && completedReps >= targetReps;
+  const isFailed = isBodyweight
+    ? false
+    : completedReps !== null && completedReps < targetReps;
 
   return (
     <div className="flex flex-col items-center gap-1.5 flex-1 min-w-[52px]">
@@ -51,8 +57,8 @@ export const SetBubble: React.FC<SetBubbleProps> = ({
         }`}
       >
         {completedReps === null ? (
-          <span className="text-base font-bold text-gym-dimmed">{targetReps}</span>
-        ) : isSuccess ? (
+          <span className="text-base font-bold text-gym-dimmed">{isBodyweight ? '+' : targetReps}</span>
+        ) : isSuccess || isBodyweight ? (
           <div className="flex flex-col items-center justify-center leading-none">
             <span className="text-lg font-black">{completedReps}</span>
             <Check className="w-3.5 h-3.5 stroke-[3] mt-0.5 text-gym-bg" />

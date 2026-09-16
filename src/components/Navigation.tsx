@@ -1,9 +1,9 @@
 import React from 'react';
-import { Dumbbell, History, TrendingUp, Settings } from 'lucide-react';
+import { Dumbbell, History, TrendingUp, Settings, Activity } from 'lucide-react';
 
 interface NavigationProps {
-  activeTab: 'workout' | 'history' | 'analytics' | 'settings';
-  setActiveTab: (tab: 'workout' | 'history' | 'analytics' | 'settings') => void;
+  activeTab: 'workout' | 'mobility' | 'history' | 'analytics' | 'settings';
+  setActiveTab: (tab: 'workout' | 'mobility' | 'history' | 'analytics' | 'settings') => void;
   isWorkoutActive: boolean;
 }
 
@@ -18,6 +18,11 @@ export const Navigation: React.FC<NavigationProps> = ({
       label: 'Workout',
       icon: Dumbbell,
       badge: isWorkoutActive,
+    },
+    {
+      id: 'mobility' as const,
+      label: 'Mobility',
+      icon: Activity,
     },
     {
       id: 'history' as const,
@@ -38,7 +43,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-gym-card/95 backdrop-blur-xl border-t border-gym-border/80 nav-safe-bottom">
-      <div className="max-w-md mx-auto grid grid-cols-4 px-2 py-1.5">
+      <div className="max-w-md mx-auto grid grid-cols-5 px-1 py-1.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

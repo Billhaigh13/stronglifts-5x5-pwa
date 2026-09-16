@@ -9,30 +9,42 @@ export function calculateWarmupSets(
   workWeight: number,
   barWeight = 20
 ): WarmupSet[] {
-  if (exerciseId === 'bicep_curl' || exerciseId === 'pullups') {
+  // Accessory / isolation / bodyweight exercises require no barbell warmup
+  if (
+    exerciseId === 'bicep_curl' ||
+    exerciseId === 'pullups' ||
+    exerciseId === 'dips' ||
+    exerciseId === 'plank'
+  ) {
     return [];
   }
 
   const isFloorLift = exerciseId === 'deadlift' || exerciseId === 'row';
 
   if (!isFloorLift) {
-    // Squat, Bench Press, Overhead Press
-    if (workWeight <= 30) {
+    // Non-floor lifts: Squat, Bench Press, Overhead Press, Incline Bench, Skullcrushers, Barbell Curl
+    // 1. Work weight is empty bar or close to it (e.g. <= 25 kg on 20 kg bar) -> No warmup sets needed
+    if (workWeight <= barWeight + 5) {
+      return [];
+    }
+
+    // 2. Light loads (27.5 kg – 35 kg) -> 1 set of 5 reps with empty bar
+    if (workWeight <= barWeight + 15) {
       return [
         { setNumber: 1, reps: 5, weight: barWeight, percentageText: 'Empty Bar', completed: false },
-        { setNumber: 2, reps: 5, weight: barWeight, percentageText: 'Empty Bar', completed: false },
       ];
     }
 
+    // 3. Moderate to heavy loads (> 35 kg) -> Progressive warmup pyramid
     const sets: WarmupSet[] = [
       { setNumber: 1, reps: 5, weight: barWeight, percentageText: 'Empty Bar', completed: false },
       { setNumber: 2, reps: 5, weight: barWeight, percentageText: 'Empty Bar', completed: false },
     ];
 
     const weight50 = Math.max(barWeight, roundToNearestIncrement(workWeight * 0.5));
-    if (weight50 < workWeight) {
+    if (weight50 > barWeight && weight50 < workWeight) {
       sets.push({
-        setNumber: 3,
+        setNumber: sets.length + 1,
         reps: 3,
         weight: weight50,
         percentageText: '50% Work Weight',
@@ -51,6 +63,7 @@ export function calculateWarmupSets(
       });
     }
 
+    // Heavy loads (>= 90 kg) -> 1 final primer single at 85%
     if (workWeight >= 90) {
       const weight85 = Math.max(weight70, roundToNearestIncrement(workWeight * 0.85));
       if (weight85 > weight70 && weight85 < workWeight) {
@@ -66,15 +79,28 @@ export function calculateWarmupSets(
 
     return sets;
   } else {
-    // Deadlift & Barbell Row
-    const baseFloorWeight = Math.min(workWeight, 40);
+    // Floor lifts: Deadlift & Barbell Row
+    const baseFloorWeight = barWeight + 20; // Default 40 kg (bar + standard plates)
 
-    if (workWeight <= 50) {
+    // 1. Work weight is at or close to floor baseline (<= 45 kg) -> No warmup sets needed
+    if (workWeight <= baseFloorWeight + 5) {
+      return [];
+    }
+
+    // 2. Light floor loads (47.5 kg – 60 kg) -> 1 set of 5 reps at floor baseline
+    if (workWeight <= baseFloorWeight + 20) {
       return [
-        { setNumber: 1, reps: 5, weight: baseFloorWeight, percentageText: 'Base Floor Weight', completed: false },
+        {
+          setNumber: 1,
+          reps: 5,
+          weight: baseFloorWeight,
+          percentageText: `Base Floor Weight (${baseFloorWeight} kg)`,
+          completed: false,
+        },
       ];
     }
 
+    // 3. Moderate to heavy loads (> 60 kg) -> Progressive pyramid
     const sets: WarmupSet[] = [];
 
     const weight45 = Math.max(baseFloorWeight, roundToNearestIncrement(workWeight * 0.45));
@@ -97,6 +123,7 @@ export function calculateWarmupSets(
       });
     }
 
+    // Heavy deadlifts (>= 100 kg) -> 1 final primer single at 85%
     if (workWeight >= 100) {
       const weight85 = Math.max(weight65, roundToNearestIncrement(workWeight * 0.85));
       if (weight85 > weight65 && weight85 < workWeight) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Plus, Minus, Sparkles, TrendingUp } from 'lucide-react';
+import { Layers, Plus, Minus, Sparkles, TrendingUp, Info } from 'lucide-react';
 import type { ExerciseId, ExerciseLog, ExerciseProgressState, ExerciseProgressionConfig, PlateInventoryItem, WarmupSet } from '../types';
 import { SetBubble } from './SetBubble';
 import { WarmupSection } from './WarmupSection';
@@ -21,6 +21,7 @@ interface ExerciseCardProps {
   onTogglePullupMode?: (exerciseId: ExerciseId, mode: 'bodyweight' | 'weighted') => void;
   onToggleWarmupSet: (exerciseId: ExerciseId, setIndex: number) => void;
   onOpenProgressionModal?: (exerciseId: ExerciseId) => void;
+  onOpenGuideModal?: (exerciseId: ExerciseId) => void;
   soundEnabled?: boolean;
   vibrationEnabled?: boolean;
 }
@@ -39,6 +40,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onTogglePullupMode,
   onToggleWarmupSet,
   onOpenProgressionModal,
+  onOpenGuideModal,
   soundEnabled = true,
   vibrationEnabled = true,
 }) => {
@@ -75,8 +77,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }
   };
 
-  const isCompletedAll = exerciseLog.completedReps.length === exerciseLog.targetReps.length &&
-    exerciseLog.completedReps.every((r, idx) => r !== null && r >= exerciseLog.targetReps[idx]);
+  const isBodyweight = (exerciseLog.exerciseId === 'pullups' || exerciseLog.exerciseId === 'dips' || exerciseLog.mode === 'bodyweight') && exerciseLog.mode !== 'weighted';
+
+  const isCompletedAll = isBodyweight
+    ? exerciseLog.completedReps.length > 0 && exerciseLog.completedReps.every((r) => r !== null)
+    : exerciseLog.completedReps.length === exerciseLog.targetReps.length &&
+      exerciseLog.completedReps.every((r, idx) => r !== null && r >= exerciseLog.targetReps[idx]);
 
   return (
     <div className={`p-4 rounded-3xl border transition-all duration-200 ${
@@ -86,10 +92,19 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }`}>
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <h3 className="text-base font-extrabold text-gym-text tracking-tight">
               {exerciseLog.exerciseName}
             </h3>
+            <button
+              type="button"
+              onClick={() => onOpenGuideModal?.(exerciseLog.exerciseId)}
+              className="p-1 rounded-lg text-gym-dimmed hover:text-gym-accent hover:bg-gym-surface/80 transition-colors tap-active"
+              title={`View ${exerciseLog.exerciseName} Guide & Form Tips`}
+              aria-label={`View ${exerciseLog.exerciseName} Guide`}
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
             {exerciseLog.isPR && (
               <span className="bg-gym-gold/20 text-gym-gold border border-gym-gold/40 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                 <Sparkles className="w-2.5 h-2.5" /> PR
@@ -99,9 +114,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[11px] font-semibold text-gym-muted">
-              {def.defaultSets}×{typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 'AMRAP'}
+              {isBodyweight
+                ? `${def.defaultSets} Sets • Progressive Reps`
+                : `${def.defaultSets}×${typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 'AMRAP'}`}
             </span>
-            {progressState && progressState.consecutiveFailures > 0 && (
+            {progressState && progressState.consecutiveFailures > 0 && !isBodyweight && (
               <span className="text-[10px] bg-gym-warning/20 text-gym-warning font-bold px-1.5 py-0.2 rounded">
                 Attempt {progressState.consecutiveFailures + 1}/{progressionConfig?.failuresBeforeDeload || 3}
               </span>
@@ -120,8 +137,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               <span>
                 {progressionConfig.strategy === 'double_progression'
                   ? `${progressionConfig.repRangeMin || 8}–${progressionConfig.repRangeMax || 12} Rep Ladder`
-                  : progressionConfig.strategy === 'bodyweight_reps'
-                  ? `AMRAP → +${progressionConfig.increment}${unit}`
+                  : isBodyweight
+                  ? `Progressive Reps (Beat Last Session)`
                   : `+${progressionConfig.increment} ${unit} / pass`}
               </span>
             </button>
@@ -225,6 +242,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               onCycleReps={() => onCycleSetReps(exerciseLog.exerciseId, idx)}
               soundEnabled={soundEnabled}
               vibrationEnabled={vibrationEnabled}
+              isBodyweight={isBodyweight}
             />
           ))}
         </div>
