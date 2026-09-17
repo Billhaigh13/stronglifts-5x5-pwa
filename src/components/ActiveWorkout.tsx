@@ -173,23 +173,25 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         defaultWeight: 20,
       };
       const prog = exerciseProgress[exId];
-      const weight = prog ? prog.currentWeight : def.defaultWeight;
+      const baseWeight = prog ? prog.currentWeight : def.defaultWeight;
+      const weight = def.category === 'barbell_compound' ? Math.max(baseWeight, userSettings.barWeight) : baseWeight;
       const targetRepsCount = def.defaultSets;
 
       let targetReps: number[];
-      if (exId === 'bicep_curl') {
-        const targetPerSet = prog?.targetRepsPerSet || 8;
+      const config = userSettings.progressionConfigs?.[exId] || DEFAULT_PROGRESSION_CONFIGS[exId];
+      const isDoubleProgression = config?.strategy === 'double_progression' || def.category === 'dumbbell_accessory';
+
+      if (isDoubleProgression) {
+        const targetPerSet = prog?.targetRepsPerSet || config?.repRangeMin || def.repRangeMin || 8;
         targetReps = Array(targetRepsCount).fill(targetPerSet);
-      } else if (exId === 'pullups') {
-        targetReps = Array(targetRepsCount).fill(10);
-      } else if (exId === 'dips') {
+      } else if (exId === 'pullups' || exId === 'dips') {
         targetReps = Array(targetRepsCount).fill(10);
       } else if (exId === 'skullcrushers' || exId === 'incline_bench' || exId === 'barbell_curl') {
-        targetReps = Array(targetRepsCount).fill(8);
+        targetReps = Array(targetRepsCount).fill(typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 8);
       } else if (exId === 'plank') {
         targetReps = Array(targetRepsCount).fill(60);
       } else {
-        targetReps = Array(targetRepsCount).fill(5);
+        targetReps = Array(targetRepsCount).fill(typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5);
       }
 
       return {

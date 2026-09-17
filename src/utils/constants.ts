@@ -112,7 +112,7 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
     defaultSets: 3,
     defaultTargetReps: 10,
     increment: 2.5,
-    defaultWeight: 15,
+    defaultWeight: 20,
     isFloorLift: false,
   },
   incline_bench: {
@@ -150,7 +150,7 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
     defaultSets: 3,
     defaultTargetReps: 8,
     increment: 2.5,
-    defaultWeight: 15,
+    defaultWeight: 20,
     isFloorLift: false,
   }
 };

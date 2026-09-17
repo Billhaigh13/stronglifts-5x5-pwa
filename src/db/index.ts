@@ -69,8 +69,31 @@ export async function getAllExerciseProgress(): Promise<Record<ExerciseId, Exerc
   const list = await db.exerciseProgress.toArray();
   const map = {} as Record<ExerciseId, ExerciseProgressState>;
   list.forEach(p => {
+    const def = EXERCISE_DEFINITIONS[p.exerciseId];
+    // If an existing record had a barbell weight below 20 kg (e.g. legacy skullcrushers @ 15 kg), upgrade to 20 kg
+    if (def && def.category === 'barbell_compound' && p.currentWeight < 20) {
+      p.currentWeight = 20;
+    }
     map[p.exerciseId] = p;
   });
+
+  // Ensure any newly introduced exercise (e.g. hammer_curl) has a default progress state
+  (Object.keys(EXERCISE_DEFINITIONS) as ExerciseId[]).forEach((id) => {
+    if (!map[id]) {
+      const def = EXERCISE_DEFINITIONS[id];
+      const isDumbbell = def.category === 'dumbbell_accessory';
+      map[id] = {
+        exerciseId: id,
+        currentWeight: def.defaultWeight,
+        consecutiveFailures: 0,
+        mode: id === 'pullups' ? 'bodyweight' : undefined,
+        targetRepsPerSet: isDumbbell ? 8 : (Array.isArray(def.defaultTargetReps) ? def.defaultTargetReps[0] : def.defaultTargetReps),
+        allTimePRWeight: def.defaultWeight,
+        allTimePRReps: typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5,
+      };
+    }
+  });
+
   return map;
 }
 

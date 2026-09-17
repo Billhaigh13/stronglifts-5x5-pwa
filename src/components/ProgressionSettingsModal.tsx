@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, TrendingUp, RotateCcw, Check, Sparkles, Sliders, ShieldAlert, ArrowRight } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressionConfig } from '../types';
 import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS } from '../utils/constants';
@@ -36,6 +36,20 @@ export const ProgressionSettingsModal: React.FC<ProgressionSettingsModalProps> =
     });
     return initial;
   });
+
+  useEffect(() => {
+    if (initialExerciseId) {
+      setSelectedExId(initialExerciseId);
+      const def = EXERCISE_DEFINITIONS[initialExerciseId];
+      if (def?.category === 'dumbbell_accessory') {
+        setActiveCategory('dumbbell');
+      } else if (def?.category === 'bodyweight_accessory') {
+        setActiveCategory('bodyweight');
+      } else {
+        setActiveCategory('barbell');
+      }
+    }
+  }, [isOpen, initialExerciseId]);
 
   if (!isOpen) return null;
 
