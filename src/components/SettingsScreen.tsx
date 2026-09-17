@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp, Info, Dumbbell, Calendar } from 'lucide-react';
 import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
-import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, DEFAULT_SCHEDULE_PREFERENCE, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, DEFAULT_SCHEDULE_PREFERENCE, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS } from '../utils/constants';
+import { getEffectiveProgram } from '../utils/programs';
 import { EXERCISE_GUIDES } from '../data/exerciseGuides';
 import { saveUserSettings, seedSampleHistory, db, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
@@ -267,7 +268,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
       {/* Active Training Program Selection Card */}
       {(() => {
-        const activeProg = PROGRAM_DEFINITIONS[settings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
+        const activeProg = getEffectiveProgram(settings.activeProgramId || 'bill_lifts', settings);
         return (
           <div className="bg-gym-card rounded-3xl border border-gym-border/80 p-4 shadow-md space-y-3">
             <div className="flex items-center justify-between">
@@ -843,8 +844,40 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         isOpen={isProgramModalOpen}
         onClose={() => setIsProgramModalOpen(false)}
         activeProgramId={settings.activeProgramId || 'bill_lifts'}
+        userSettings={settings}
         onSelectProgram={async (progId) => {
           const updated = { ...settings, activeProgramId: progId };
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
+        onSaveCustomProgram={async (program) => {
+          let updated: UserSettings;
+          if (program.isCustom) {
+            const existing = settings.customPrograms || [];
+            const idx = existing.findIndex((p) => p.id === program.id);
+            const updatedCustom = idx >= 0 ? existing.map((p, i) => (i === idx ? program : p)) : [...existing, program];
+            updated = { ...settings, customPrograms: updatedCustom, activeProgramId: program.id };
+          } else {
+            const overrides = { ...(settings.programOverrides || {}), [program.id]: program };
+            updated = { ...settings, programOverrides: overrides, activeProgramId: program.id };
+          }
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
+        onDeleteCustomProgram={async (programId) => {
+          const updatedCustom = (settings.customPrograms || []).filter((p) => p.id !== programId);
+          const nextActive = settings.activeProgramId === programId ? 'bill_lifts' : settings.activeProgramId;
+          const updated = { ...settings, customPrograms: updatedCustom, activeProgramId: nextActive };
+          setSettings(updated);
+          await saveUserSettings(updated);
+          onSettingsUpdated();
+        }}
+        onResetProgramOverride={async (programId) => {
+          const overrides = { ...(settings.programOverrides || {}) };
+          delete overrides[programId];
+          const updated = { ...settings, programOverrides: overrides };
           setSettings(updated);
           await saveUserSettings(updated);
           onSettingsUpdated();

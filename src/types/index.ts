@@ -7,6 +7,7 @@ export type ExerciseId =
   | 'ohp' 
   | 'deadlift' 
   | 'bicep_curl' 
+  | 'hammer_curl'
   | 'pullups'
   | 'dips'
   | 'skullcrushers'
@@ -35,7 +36,8 @@ export type ProgramId =
   | 'classic_5x5'
   | 'sl_plus_arms'
   | 'sl_3x5'
-  | 'sl_hypertrophy';
+  | 'sl_hypertrophy'
+  | (string & {});
 
 export interface ProgramRoutine {
   name: string;
@@ -43,12 +45,13 @@ export interface ProgramRoutine {
 }
 
 export interface ProgramDefinition {
-  id: ProgramId;
+  id: string;
   name: string;
   tagline: string;
   description: string;
   badge?: string;
   routines: Record<WorkoutType, ProgramRoutine>;
+  isCustom?: boolean;
 }
 
 export interface WarmupSet {
@@ -97,7 +100,7 @@ export interface SchedulePreference {
 export interface WorkoutSession {
   id?: number;
   type: WorkoutType;
-  programId?: ProgramId;
+  programId?: string;
   programName?: string;
   sessionCategory?: 'strength' | 'mobility';
   date: string;
@@ -132,12 +135,14 @@ export interface ExerciseProgressionConfig {
 export interface UserSettings {
   unit: 'kg' | 'lbs';
   barWeight: number; // Default 20 kg
-  activeProgramId: ProgramId; // 'bill_lifts' by default
+  activeProgramId: string; // 'bill_lifts' by default
   dumbbellInventory: number[]; // e.g. [2, 4, 5, 7.5, 9, 10, 12.5, 15, 17.5, 20]
   plateInventory: PlateInventoryItem[]; // e.g. [{ weight: 20, count: 2 }, { weight: 15, count: 2 }, ...]
   availablePlates?: number[]; // backwards compatibility fallback
   progressionConfigs?: Partial<Record<ExerciseId, ExerciseProgressionConfig>>;
   schedulePreference?: SchedulePreference;
+  customPrograms?: ProgramDefinition[];
+  programOverrides?: Record<string, ProgramDefinition>;
   defaultRestSecondsSuccess: number;
   defaultRestSecondsFailure: number;
   soundEnabled: boolean;

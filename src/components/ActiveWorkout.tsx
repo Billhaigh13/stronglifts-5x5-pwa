@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, MobilityRoutine, ProgramId, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
-import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS, PROGRAM_DEFINITIONS } from '../utils/constants';
+import type { ExerciseId, ExerciseLog, ExerciseProgressState, MobilityRoutine, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
+import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS } from '../utils/constants';
+import { getEffectiveProgram } from '../utils/programs';
 import { MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
@@ -26,7 +27,7 @@ interface ActiveWorkoutProps {
   userSettings: UserSettings;
   exerciseProgress: Record<ExerciseId, ExerciseProgressState>;
   onWorkoutSaved: () => void;
-  onSelectProgram: (programId: ProgramId) => void;
+  onSelectProgram: (programId: string) => void;
   onWorkoutStateChange?: (state: WorkoutLiveState) => void;
   onUpdateUserSettings?: (settings: UserSettings) => Promise<void>;
   onStartMobilityRoutine?: (routine: MobilityRoutine) => void;
@@ -45,7 +46,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   lastWorkout,
   workouts = [],
 }) => {
-  const activeProgram = PROGRAM_DEFINITIONS[userSettings.activeProgramId || 'bill_lifts'] || PROGRAM_DEFINITIONS.bill_lifts;
+  const activeProgram = getEffectiveProgram(userSettings.activeProgramId || 'bill_lifts', userSettings);
 
   const suggestedWorkout: WorkoutType = lastWorkout ? (lastWorkout.type === 'A' ? 'B' : 'A') : 'A';
   const [selectedType, setSelectedType] = useState<WorkoutType>(suggestedWorkout);
@@ -172,23 +173,25 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         defaultWeight: 20,
       };
       const prog = exerciseProgress[exId];
-      const weight = prog ? prog.currentWeight : def.defaultWeight;
+      const baseWeight = prog ? prog.currentWeight : def.defaultWeight;
+      const weight = def.category === 'barbell_compound' ? Math.max(baseWeight, userSettings.barWeight) : baseWeight;
       const targetRepsCount = def.defaultSets;
 
       let targetReps: number[];
-      if (exId === 'bicep_curl') {
-        const targetPerSet = prog?.targetRepsPerSet || 8;
+      const config = userSettings.progressionConfigs?.[exId] || DEFAULT_PROGRESSION_CONFIGS[exId];
+      const isDoubleProgression = config?.strategy === 'double_progression' || def.category === 'dumbbell_accessory';
+
+      if (isDoubleProgression) {
+        const targetPerSet = prog?.targetRepsPerSet || config?.repRangeMin || def.repRangeMin || 8;
         targetReps = Array(targetRepsCount).fill(targetPerSet);
-      } else if (exId === 'pullups') {
-        targetReps = Array(targetRepsCount).fill(10);
-      } else if (exId === 'dips') {
+      } else if (exId === 'pullups' || exId === 'dips') {
         targetReps = Array(targetRepsCount).fill(10);
       } else if (exId === 'skullcrushers' || exId === 'incline_bench' || exId === 'barbell_curl') {
-        targetReps = Array(targetRepsCount).fill(8);
+        targetReps = Array(targetRepsCount).fill(typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 8);
       } else if (exId === 'plank') {
         targetReps = Array(targetRepsCount).fill(60);
       } else {
-        targetReps = Array(targetRepsCount).fill(5);
+        targetReps = Array(targetRepsCount).fill(typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5);
       }
 
       return {
@@ -643,7 +646,47 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         isOpen={isProgramModalOpen}
         onClose={() => setIsProgramModalOpen(false)}
         activeProgramId={userSettings.activeProgramId || 'bill_lifts'}
+        userSettings={userSettings}
         onSelectProgram={onSelectProgram}
+        onSaveCustomProgram={async (program) => {
+          if (!onUpdateUserSettings) return;
+          if (program.isCustom) {
+            const existing = userSettings.customPrograms || [];
+            const idx = existing.findIndex((p) => p.id === program.id);
+            const updatedCustom = idx >= 0 ? existing.map((p, i) => (i === idx ? program : p)) : [...existing, program];
+            await onUpdateUserSettings({
+              ...userSettings,
+              customPrograms: updatedCustom,
+              activeProgramId: program.id,
+            });
+          } else {
+            const overrides = { ...(userSettings.programOverrides || {}), [program.id]: program };
+            await onUpdateUserSettings({
+              ...userSettings,
+              programOverrides: overrides,
+              activeProgramId: program.id,
+            });
+          }
+        }}
+        onDeleteCustomProgram={async (programId) => {
+          if (!onUpdateUserSettings) return;
+          const updatedCustom = (userSettings.customPrograms || []).filter((p) => p.id !== programId);
+          const nextActive = userSettings.activeProgramId === programId ? 'bill_lifts' : userSettings.activeProgramId;
+          await onUpdateUserSettings({
+            ...userSettings,
+            customPrograms: updatedCustom,
+            activeProgramId: nextActive,
+          });
+        }}
+        onResetProgramOverride={async (programId) => {
+          if (!onUpdateUserSettings) return;
+          const overrides = { ...(userSettings.programOverrides || {}) };
+          delete overrides[programId];
+          await onUpdateUserSettings({
+            ...userSettings,
+            programOverrides: overrides,
+          });
+        }}
       />
 
       <ProgressionSettingsModal

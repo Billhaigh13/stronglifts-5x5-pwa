@@ -72,6 +72,17 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
     repRangeMin: 8,
     repRangeMax: 12,
   },
+  hammer_curl: {
+    id: 'hammer_curl',
+    name: 'Dumbbell Hammer Curls',
+    category: 'dumbbell_accessory',
+    defaultSets: 3,
+    defaultTargetReps: 8,
+    increment: 0,
+    defaultWeight: 7.5, // kg
+    repRangeMin: 8,
+    repRangeMax: 12,
+  },
   pullups: {
     id: 'pullups',
     name: 'Pull-ups / Chin-ups',
@@ -101,7 +112,7 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
     defaultSets: 3,
     defaultTargetReps: 10,
     increment: 2.5,
-    defaultWeight: 15,
+    defaultWeight: 20,
     isFloorLift: false,
   },
   incline_bench: {
@@ -139,7 +150,7 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
     defaultSets: 3,
     defaultTargetReps: 8,
     increment: 2.5,
-    defaultWeight: 15,
+    defaultWeight: 20,
     isFloorLift: false,
   }
 };
@@ -182,6 +193,16 @@ export const DEFAULT_PROGRESSION_CONFIGS: Record<ExerciseId, ExerciseProgression
   },
   bicep_curl: {
     exerciseId: 'bicep_curl',
+    strategy: 'double_progression',
+    increment: 0,
+    repRangeMin: 8,
+    repRangeMax: 12,
+    repStep: 2,
+    deloadPercentage: 10,
+    failuresBeforeDeload: 3,
+  },
+  hammer_curl: {
+    exerciseId: 'hammer_curl',
     strategy: 'double_progression',
     increment: 0,
     repRangeMin: 8,

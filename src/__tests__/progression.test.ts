@@ -226,6 +226,30 @@ describe('calculateNextProgression', () => {
       expect(result.nextTargetReps).toBe(6); // resets to 6 reps
       expect(result.message).toContain('Progressing up to 12.5 kg');
     });
+
+    it('advances reps from 8 to 10 for hammer_curl when 3x8 is completed', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'hammer_curl',
+        exerciseName: 'Dumbbell Hammer Curls',
+        targetWeight: 7.5,
+        targetReps: [8, 8, 8],
+        completedReps: [8, 8, 8],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'hammer_curl',
+        currentWeight: 7.5,
+        targetRepsPerSet: 8,
+        consecutiveFailures: 0,
+        allTimePRWeight: 7.5,
+        allTimePRReps: 8,
+      };
+
+      const result = calculateNextProgression('hammer_curl', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(7.5);
+      expect(result.nextTargetReps).toBe(10);
+      expect(result.message).toContain('3×10 at 7.5 kg');
+    });
   });
 
   describe('Pull-ups & Chin-ups Progression', () => {

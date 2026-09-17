@@ -71,7 +71,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       }
     } else {
       const increment = progressionConfig?.increment ?? def.increment ?? 2.5;
-      const minWeight = isBarbell ? (def.id === 'ohp' ? 20 : (def.isFloorLift ? 40 : 20)) : 0;
+      const minWeight = isBarbell ? (def.isFloorLift ? 40 : barWeight) : 0;
       const nextWeight = Math.max(minWeight, exerciseLog.targetWeight + (delta > 0 ? increment : -increment));
       onUpdateWeight(exerciseLog.exerciseId, nextWeight);
     }
