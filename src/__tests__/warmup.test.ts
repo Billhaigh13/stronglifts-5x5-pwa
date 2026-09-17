@@ -78,8 +78,9 @@ describe('calculateWarmupSets', () => {
   });
 
   describe('Accessories & Bodyweight', () => {
-    it('returns empty array for dumbbell curls, pullups, dips, planks', () => {
+    it('returns empty array for dumbbell curls, pullups, dips, planks, hammer curls', () => {
       expect(calculateWarmupSets('bicep_curl', 15, barWeight)).toEqual([]);
+      expect(calculateWarmupSets('hammer_curl', 15, barWeight)).toEqual([]);
       expect(calculateWarmupSets('pullups', 0, barWeight)).toEqual([]);
       expect(calculateWarmupSets('dips', 0, barWeight)).toEqual([]);
       expect(calculateWarmupSets('plank', 0, barWeight)).toEqual([]);

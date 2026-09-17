@@ -330,7 +330,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
                     <Sparkles className="w-3 h-3" />
                     {isBodyweightEx ? `${prReps} Reps` : `${prWeight} ${unit}`}
                   </div>
-                  {exId !== 'bicep_curl' && !isBodyweightEx && (
+                  {EXERCISE_DEFINITIONS[exId]?.category !== 'dumbbell_accessory' && !isBodyweightEx && (
                     <div className="text-[10px] font-mono text-gym-dimmed">
                       Est. 1RM: ~{est1RM} {unit}
                     </div>

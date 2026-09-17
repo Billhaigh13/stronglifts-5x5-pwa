@@ -23,7 +23,13 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   unit = 'kg',
   exerciseName,
 }) => {
-  const [weight, setWeight] = useState(initialWeight);
+  const [weight, setWeight] = useState(() => Math.max(barWeight, initialWeight));
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setWeight(Math.max(barWeight, initialWeight));
+    }
+  }, [isOpen, initialWeight, barWeight]);
 
   if (!isOpen) return null;
 

@@ -12,9 +12,11 @@ export function calculateWarmupSets(
   // Accessory / isolation / bodyweight exercises require no barbell warmup
   if (
     exerciseId === 'bicep_curl' ||
+    exerciseId === 'hammer_curl' ||
     exerciseId === 'pullups' ||
     exerciseId === 'dips' ||
-    exerciseId === 'plank'
+    exerciseId === 'plank' ||
+    exerciseId === 'hanging_leg_raises'
   ) {
     return [];
   }
