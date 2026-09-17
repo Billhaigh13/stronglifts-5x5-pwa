@@ -214,6 +214,36 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
     breathing: 'Exhale as you curl the dumbbells up; inhale as you lower them down.'
   },
 
+  hammer_curl: {
+    id: 'hammer_curl',
+    name: 'Dumbbell Hammer Curls',
+    category: 'dumbbell_accessory',
+    equipment: 'Dumbbells',
+    primaryMuscles: ['Brachialis', 'Brachioradialis (Forearms)'],
+    secondaryMuscles: ['Biceps Brachii'],
+    animationUrl: '/exercises/bicep_curl.webm',
+    overview: 'Essential arm accessory with a neutral grip that targets the brachialis and forearms, adding arm thickness and grip strength.',
+    setup: [
+      'Stand upright holding a pair of dumbbells at your sides with a neutral grip (palms facing each other).',
+      'Keep your elbows tucked close to your torso and shoulders relaxed.'
+    ],
+    execution: [
+      'Maintaining the neutral grip, curl the weights up towards your shoulders.',
+      'Keep your upper arms stationary; do not swing your torso or flare your elbows.',
+      'Squeeze hard at top contraction for 1 second.',
+      'Lower the dumbbells steadily back to full arm extension.'
+    ],
+    proTips: [
+      'Keep your palms facing inward throughout the entire range of motion (do not rotate wrists).',
+      'Controls the lowering portion for 2 seconds to maximize brachialis hypertrophy.'
+    ],
+    commonMistakes: [
+      'Swinging hips or upper body to lift heavier weight.',
+      'Allowing wrists to rotate into supination.'
+    ],
+    breathing: 'Exhale as you lift the dumbbells; inhale as you lower them.'
+  },
+
   pullups: {
     id: 'pullups',
     name: 'Pull-ups / Chin-ups',
