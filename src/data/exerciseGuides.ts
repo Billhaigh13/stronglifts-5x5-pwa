@@ -305,31 +305,34 @@ export const EXERCISE_GUIDES: Record<ExerciseId, ExerciseGuide> = {
 
   skullcrushers: {
     id: 'skullcrushers',
-    name: 'Barbell Skullcrushers',
+    name: 'Skullcrushers',
     category: 'barbell_compound',
-    equipment: 'Flat Bench & EZ/Barbell',
+    equipment: 'Single Dumbbell (Two-Handed) or Olympic/EZ Barbell & Flat Bench',
     primaryMuscles: ['Triceps (Long Head & Medial Head)'],
     secondaryMuscles: ['Forearms', 'Front Deltoids'],
     animationUrl: '/exercises/skullcrushers.webm',
-    overview: 'Direct tricep isolation exercise that emphasizes the long head of the triceps for massive arm girth and bench lockout support.',
+    overview: 'Direct tricep isolation exercise that emphasizes the long head of the triceps for arm thickness and lockout power. Starts with a single dumbbell held in two hands (3×10), advancing through the dumbbell rack until graduating to the 20 kg Olympic barbell.',
     setup: [
-      'Lie on a flat bench holding an EZ bar or barbell directly above your chest with shoulder-width overhand grip.',
-      'Angle your upper arms slightly backwards (towards your forehead) about 10–15 degrees to maintain constant tension.'
+      'Dumbbell Mode: Lie on a flat bench holding one dumbbell vertically with both hands cupping the underside of the top plate (diamond grip) directly above your chest.',
+      'Barbell Mode: Lie on a flat bench gripping the barbell or EZ-curl bar with an overhand, shoulder-width grip.',
+      'Angle your upper arms slightly backwards (towards your forehead) about 10–15 degrees to maintain continuous tricep tension at lockout.'
     ],
     execution: [
-      'Keeping your upper arms fixed in place, bend at the elbows to lower the bar toward your forehead or top of your head.',
-      'Lower the weight with control until your elbows reach deep flexion.',
-      'Extend your elbows to press the bar back up along the same arc to the starting angled position.'
+      'Keeping your upper arms fixed in place and pointing toward the ceiling, bend only at your elbows to lower the weight under control toward the crown of your head or hairline.',
+      'Lower the weight with control until your elbows reach deep flexion and you feel a full tricep stretch.',
+      'Extend your elbows to press the weight back up along the same arc to the starting angled position.'
     ],
     proTips: [
-      'Do not flare your elbows out wide; keep them tucked and pointing straight ahead.',
-      'Aim for the hairline / top of the head for greater tricep stretch and safer wrist angle.'
+      'Keep your elbows tucked and pointing straight ahead; avoid letting them flare outward.',
+      'Progress with the two-handed single dumbbell (3×10) from 7.5 kg up to 20 kg before graduating to the 20 kg Olympic bar.',
+      'Aim for the crown/hairline of the head rather than your nose or teeth for a deeper, safer stretch.'
     ],
     commonMistakes: [
+      'Flaring elbows out to the sides, shifting tension away from the triceps.',
       'Letting the upper arms drift forward and backward like a pullover.',
-      'Dropping the bar too quickly near the face.'
+      'Lowering the weight too quickly without control.'
     ],
-    breathing: 'Inhale as you lower the bar to your forehead; exhale as you extend your triceps to lockout.'
+    breathing: 'Inhale as you lower the weight toward the crown of your head; exhale as you extend your triceps to lockout.'
   },
 
   incline_bench: {

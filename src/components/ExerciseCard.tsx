@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, Plus, Minus, Sparkles, TrendingUp, Info } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, ExerciseProgressionConfig, PlateInventoryItem, WarmupSet } from '../types';
+import type { ExerciseId, ExerciseLog, ExerciseMode, ExerciseProgressState, ExerciseProgressionConfig, PlateInventoryItem, WarmupSet } from '../types';
 import { SetBubble } from './SetBubble';
 import { WarmupSection } from './WarmupSection';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
@@ -19,6 +19,7 @@ interface ExerciseCardProps {
   onCycleSetReps: (exerciseId: ExerciseId, setIndex: number) => void;
   onUpdateWeight: (exerciseId: ExerciseId, newWeight: number) => void;
   onTogglePullupMode?: (exerciseId: ExerciseId, mode: 'bodyweight' | 'weighted') => void;
+  onToggleExerciseMode?: (exerciseId: ExerciseId, mode: ExerciseMode) => void;
   onToggleWarmupSet: (exerciseId: ExerciseId, setIndex: number) => void;
   onOpenProgressionModal?: (exerciseId: ExerciseId) => void;
   onOpenGuideModal?: (exerciseId: ExerciseId) => void;
@@ -38,6 +39,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onCycleSetReps,
   onUpdateWeight,
   onTogglePullupMode,
+  onToggleExerciseMode,
   onToggleWarmupSet,
   onOpenProgressionModal,
   onOpenGuideModal,
@@ -54,8 +56,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     increment: 2.5,
     defaultWeight: 20,
   };
-  const isBarbell = def.category === 'barbell_compound';
-  const isDumbbell = def.category === 'dumbbell_accessory';
+
+  const isSkullcrushers = exerciseLog.exerciseId === 'skullcrushers';
+  const skullcrusherMode: 'dumbbell' | 'barbell' = isSkullcrushers
+    ? (exerciseLog.mode === 'barbell' || (exerciseLog.targetWeight >= 20 && exerciseLog.mode !== 'dumbbell') ? 'barbell' : 'dumbbell')
+    : 'barbell';
+
+  const isBarbell = isSkullcrushers ? skullcrusherMode === 'barbell' : def.category === 'barbell_compound';
+  const isDumbbell = isSkullcrushers ? skullcrusherMode === 'dumbbell' : def.category === 'dumbbell_accessory';
   const isPullups = exerciseLog.exerciseId === 'pullups';
 
   const handleAdjustWeight = (delta: number) => {
@@ -114,7 +122,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[11px] font-semibold text-gym-muted">
-              {isBodyweight
+              {isSkullcrushers
+                ? (skullcrusherMode === 'dumbbell'
+                    ? '3 Sets • 10 Reps • Two-Hand Dumbbell'
+                    : '3 Sets • 10 Reps • Olympic Barbell')
+                : isBodyweight
                 ? `${def.defaultSets} Sets • Progressive Reps`
                 : `${def.defaultSets}×${typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 'AMRAP'}`}
             </span>
@@ -135,7 +147,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             >
               <TrendingUp className="w-2.5 h-2.5" />
               <span>
-                {progressionConfig.strategy === 'double_progression'
+                {isSkullcrushers
+                  ? (skullcrusherMode === 'dumbbell'
+                      ? 'Dumbbell Step-Up (3×10 → Barbell @ 20kg)'
+                      : `+${progressionConfig.increment} ${unit} / pass (3×10)`)
+                  : progressionConfig.strategy === 'double_progression'
                   ? `${progressionConfig.repRangeMin || 8}–${progressionConfig.repRangeMax || 12} Rep Ladder`
                   : isBodyweight
                   ? `Progressive Reps (Beat Last Session)`
@@ -208,6 +224,33 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             }`}
           >
             Weighted (+{exerciseLog.targetWeight} {unit})
+          </button>
+        </div>
+      )}
+
+      {isSkullcrushers && (
+        <div className="mt-3 flex items-center gap-2 bg-gym-surface/60 p-1 rounded-2xl border border-gym-border/40">
+          <button
+            type="button"
+            onClick={() => onToggleExerciseMode?.(exerciseLog.exerciseId, 'dumbbell')}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              skullcrusherMode === 'dumbbell'
+                ? 'bg-gym-accent text-gym-bg shadow-glow-emerald font-extrabold'
+                : 'text-gym-muted hover:text-gym-text'
+            }`}
+          >
+            Dumbbell (3×10)
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleExerciseMode?.(exerciseLog.exerciseId, 'barbell')}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              skullcrusherMode === 'barbell'
+                ? 'bg-gym-accent text-gym-bg shadow-glow-emerald font-extrabold'
+                : 'text-gym-muted hover:text-gym-text'
+            }`}
+          >
+            Barbell (3×10)
           </button>
         </div>
       )}
