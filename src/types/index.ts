@@ -62,11 +62,13 @@ export interface WarmupSet {
   completed: boolean;
 }
 
+export type ExerciseMode = 'bodyweight' | 'weighted' | 'dumbbell' | 'barbell';
+
 export interface ExerciseProgressState {
   exerciseId: ExerciseId;
   currentWeight: number;
   consecutiveFailures: number;
-  mode?: 'bodyweight' | 'weighted';
+  mode?: ExerciseMode;
   targetRepsPerSet?: number;
   lastCompletedDate?: string;
   allTimePRWeight: number;
@@ -83,7 +85,7 @@ export interface ExerciseLog {
   completedReps: (number | null)[];
   isPR?: boolean;
   isDeload?: boolean;
-  mode?: 'bodyweight' | 'weighted';
+  mode?: ExerciseMode;
   completed: boolean;
 }
 
@@ -178,6 +180,7 @@ export interface ProgressionResult {
   deloadPercent?: number;
   message: string;
   nextTargetReps?: number;
+  nextMode?: ExerciseMode;
 }
 
 export type MobilityCategory = 'yoga' | 'stretching' | 'pilates' | 'mobility';

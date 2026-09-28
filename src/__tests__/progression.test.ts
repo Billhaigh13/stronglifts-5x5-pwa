@@ -325,4 +325,138 @@ describe('calculateNextProgression', () => {
       expect(result.message).toContain('+1.25 kg');
     });
   });
+
+  describe('Skullcrushers Progression (Two-Hand Dumbbell 3×10 → Barbell @ 20kg)', () => {
+    it('steps up to the next dumbbell in inventory on 3x10 completion (7.5kg -> 9kg)', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'skullcrushers',
+        exerciseName: 'Skullcrushers',
+        targetWeight: 7.5,
+        mode: 'dumbbell',
+        targetReps: [10, 10, 10],
+        completedReps: [10, 10, 10],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'skullcrushers',
+        currentWeight: 7.5,
+        mode: 'dumbbell',
+        consecutiveFailures: 0,
+        allTimePRWeight: 7.5,
+        allTimePRReps: 10,
+      };
+
+      const result = calculateNextProgression('skullcrushers', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(9);
+      expect(result.nextMode).toBe('dumbbell');
+      expect(result.nextTargetReps).toBe(10);
+      expect(result.message).toContain('Stepping up to the 9 kg dumbbell');
+    });
+
+    it('keeps dumbbell weight and tracks failure when 3x10 is missed', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'skullcrushers',
+        exerciseName: 'Skullcrushers',
+        targetWeight: 10,
+        mode: 'dumbbell',
+        targetReps: [10, 10, 10],
+        completedReps: [10, 9, 8],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'skullcrushers',
+        currentWeight: 10,
+        mode: 'dumbbell',
+        consecutiveFailures: 0,
+        allTimePRWeight: 10,
+        allTimePRReps: 10,
+      };
+
+      const result = calculateNextProgression('skullcrushers', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(10);
+      expect(result.nextMode).toBe('dumbbell');
+      expect(result.consecutiveFailures).toBe(1);
+      expect(result.isDeload).toBe(false);
+      expect(result.message).toContain('Missed 3×10 (Attempt 1/3)');
+    });
+
+    it('deloads to previous dumbbell on 3 consecutive failures in dumbbell mode', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'skullcrushers',
+        exerciseName: 'Skullcrushers',
+        targetWeight: 12.5,
+        mode: 'dumbbell',
+        targetReps: [10, 10, 10],
+        completedReps: [9, 8, 7],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'skullcrushers',
+        currentWeight: 12.5,
+        mode: 'dumbbell',
+        consecutiveFailures: 2,
+        allTimePRWeight: 12.5,
+        allTimePRReps: 10,
+      };
+
+      const result = calculateNextProgression('skullcrushers', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(10);
+      expect(result.nextMode).toBe('dumbbell');
+      expect(result.consecutiveFailures).toBe(0);
+      expect(result.isDeload).toBe(true);
+      expect(result.message).toContain('Deloading to 10 kg dumbbell');
+    });
+
+    it('graduates to 20kg Olympic Barbell when completing 3x10 at 20kg dumbbell', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'skullcrushers',
+        exerciseName: 'Skullcrushers',
+        targetWeight: 20,
+        mode: 'dumbbell',
+        targetReps: [10, 10, 10],
+        completedReps: [10, 10, 10],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'skullcrushers',
+        currentWeight: 20,
+        mode: 'dumbbell',
+        consecutiveFailures: 0,
+        allTimePRWeight: 20,
+        allTimePRReps: 10,
+      };
+
+      const result = calculateNextProgression('skullcrushers', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(20);
+      expect(result.nextMode).toBe('barbell');
+      expect(result.nextTargetReps).toBe(10);
+      expect(result.message).toContain('Graduating to the 20 kg Olympic Barbell');
+    });
+
+    it('advances barbell skullcrushers linearly by +2.5kg on 3x10 success', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'skullcrushers',
+        exerciseName: 'Skullcrushers',
+        targetWeight: 20,
+        mode: 'barbell',
+        targetReps: [10, 10, 10],
+        completedReps: [10, 10, 10],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'skullcrushers',
+        currentWeight: 20,
+        mode: 'barbell',
+        consecutiveFailures: 0,
+        allTimePRWeight: 20,
+        allTimePRReps: 10,
+      };
+
+      const result = calculateNextProgression('skullcrushers', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(22.5);
+      expect(result.nextMode).toBe('barbell');
+      expect(result.consecutiveFailures).toBe(0);
+      expect(result.message).toContain('Added +2.5 kg for next session (22.5 kg)');
+    });
+  });
 });
