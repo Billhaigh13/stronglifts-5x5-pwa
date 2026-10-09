@@ -730,6 +730,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             />
           </button>
         </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-gym-border/40">
+          <div>
+            <div className="text-xs font-bold text-gym-text">Inactivity Deload Suggestion</div>
+            <div className="text-[11px] text-gym-dimmed">Suggest deload after break (≥ 8 days away)</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSettings({ ...settings, enableInactivityDeload: settings.enableInactivityDeload === false ? true : false })}
+            className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
+              settings.enableInactivityDeload !== false ? 'bg-gym-accent' : 'bg-gym-surface'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                settings.enableInactivityDeload !== false ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Target Weights */}
