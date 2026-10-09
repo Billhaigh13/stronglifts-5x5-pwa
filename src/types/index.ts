@@ -150,7 +150,17 @@ export interface UserSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   autoStartRestTimer: boolean;
+  enableInactivityDeload?: boolean; // Default true: suggest deload if away for >= 8 days
   githubToken?: string;
+}
+
+export interface InactivityDeloadSuggestion {
+  exerciseId: ExerciseId;
+  exerciseName: string;
+  daysElapsed: number;
+  percent: number; // 10, 20, 30, 50
+  currentWeight: number;
+  suggestedWeight: number;
 }
 
 export interface PlateCount {

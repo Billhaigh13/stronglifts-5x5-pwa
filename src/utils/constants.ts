@@ -391,6 +391,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   autoStartRestTimer: true,
+  enableInactivityDeload: true,
 };
 
 export const OLYMPIC_PLATE_COLORS: Record<number, { bg: string; text: string; border?: string; height: string }> = {

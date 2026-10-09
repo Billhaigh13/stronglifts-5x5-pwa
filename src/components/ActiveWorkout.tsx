@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseMode, ExerciseProgressState, MobilityRoutine, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
+import type { ExerciseId, ExerciseLog, ExerciseMode, ExerciseProgressState, InactivityDeloadSuggestion, MobilityRoutine, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
 import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS } from '../utils/constants';
 import { getEffectiveProgram } from '../utils/programs';
 import { MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
+import { checkRoutineInactivitySuggestions } from '../utils/inactivity';
 import { ExerciseCard } from './ExerciseCard';
 import { RestTimer } from './RestTimer';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
@@ -14,6 +15,7 @@ import { ProgressionSettingsModal } from './ProgressionSettingsModal';
 import { ExerciseGuideModal } from './ExerciseGuideModal';
 import { WeeklyScheduleStrip } from './WeeklyScheduleStrip';
 import { ScheduleSettingsModal } from './ScheduleSettingsModal';
+import { InactivityDeloadModal } from './InactivityDeloadModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -67,6 +69,10 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [guideExerciseId, setGuideExerciseId] = useState<ExerciseId | null>(null);
   const [activeProgressionExId, setActiveProgressionExId] = useState<ExerciseId>('squat');
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
+
+  const [isInactivityModalOpen, setIsInactivityModalOpen] = useState<boolean>(false);
+  const [inactivitySuggestions, setInactivitySuggestions] = useState<InactivityDeloadSuggestion[]>([]);
+  const [pendingWorkoutType, setPendingWorkoutType] = useState<WorkoutType | null>(null);
 
   const timerIntervalRef = useRef<any>(null);
 
@@ -159,9 +165,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     });
   };
 
-  const handleStartWorkout = (type: WorkoutType) => {
+  const startActiveWorkout = (type: WorkoutType, weightOverrides: Record<string, number> = {}) => {
     setSelectedType(type);
     const routine = activeProgram.routines[type];
+    if (!routine) return;
+
     const initialLogs: ExerciseLog[] = routine.exerciseIds.map((exId) => {
       const def = EXERCISE_DEFINITIONS[exId] || {
         id: exId,
@@ -173,7 +181,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         defaultWeight: 20,
       };
       const prog = exerciseProgress[exId];
-      const baseWeight = prog ? prog.currentWeight : def.defaultWeight;
+      const baseWeight = weightOverrides[exId] ?? (prog ? prog.currentWeight : def.defaultWeight);
       const isSkullcrushers = exId === 'skullcrushers';
       const skullcrushersMode: ExerciseMode = prog?.mode || (baseWeight >= 20 ? 'barbell' : 'dumbbell');
       const isBarbell = isSkullcrushers ? skullcrushersMode === 'barbell' : def.category === 'barbell_compound';
@@ -221,7 +229,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     routine.exerciseIds.forEach((exId) => {
       const def = EXERCISE_DEFINITIONS[exId];
       const prog = exerciseProgress[exId];
-      const baseWeight = prog ? prog.currentWeight : def.defaultWeight;
+      const baseWeight = weightOverrides[exId] ?? (prog ? prog.currentWeight : def.defaultWeight);
       const isSkull = exId === 'skullcrushers';
       const skullMode = prog?.mode || (baseWeight >= 20 ? 'barbell' : 'dumbbell');
       const isBarbell = isSkull ? skullMode === 'barbell' : def && def.category === 'barbell_compound';
@@ -244,6 +252,58 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       duration: 0,
       type,
     });
+  };
+
+  const handleStartWorkout = (type: WorkoutType) => {
+    setSelectedType(type);
+    const routine = activeProgram.routines[type];
+    if (!routine) return;
+
+    if (userSettings.enableInactivityDeload !== false) {
+      const suggestions = checkRoutineInactivitySuggestions(
+        routine.exerciseIds,
+        exerciseProgress,
+        userSettings,
+        lastWorkout?.date
+      );
+
+      if (suggestions.length > 0) {
+        setPendingWorkoutType(type);
+        setInactivitySuggestions(suggestions);
+        setIsInactivityModalOpen(true);
+        return;
+      }
+    }
+
+    startActiveWorkout(type);
+  };
+
+  const handleApplyInactivityDeload = async (selectedExerciseIds: ExerciseId[]) => {
+    setIsInactivityModalOpen(false);
+    const type = pendingWorkoutType || selectedType;
+    const overrides: Record<string, number> = {};
+
+    for (const s of inactivitySuggestions) {
+      if (selectedExerciseIds.includes(s.exerciseId)) {
+        overrides[s.exerciseId] = s.suggestedWeight;
+        const currentProg = exerciseProgress[s.exerciseId];
+        if (currentProg) {
+          await updateExerciseProgress({
+            ...currentProg,
+            currentWeight: s.suggestedWeight,
+            consecutiveFailures: 0,
+          });
+        }
+      }
+    }
+
+    startActiveWorkout(type, overrides);
+  };
+
+  const handleKeepCurrentWeightsAndStart = () => {
+    setIsInactivityModalOpen(false);
+    const type = pendingWorkoutType || selectedType;
+    startActiveWorkout(type);
   };
 
   const handleCycleSetReps = (exerciseId: ExerciseId, setIndex: number) => {
@@ -785,6 +845,15 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             await onUpdateUserSettings({ ...userSettings, schedulePreference: newPref });
           }
         }}
+      />
+
+      <InactivityDeloadModal
+        isOpen={isInactivityModalOpen}
+        suggestions={inactivitySuggestions}
+        unit={userSettings.unit}
+        onApplyAndStart={handleApplyInactivityDeload}
+        onKeepAndStart={handleKeepCurrentWeightsAndStart}
+        onClose={() => setIsInactivityModalOpen(false)}
       />
     </div>
   );
