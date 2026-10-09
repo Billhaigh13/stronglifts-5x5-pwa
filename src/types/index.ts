@@ -62,11 +62,13 @@ export interface WarmupSet {
   completed: boolean;
 }
 
+export type ExerciseMode = 'bodyweight' | 'weighted' | 'dumbbell' | 'barbell';
+
 export interface ExerciseProgressState {
   exerciseId: ExerciseId;
   currentWeight: number;
   consecutiveFailures: number;
-  mode?: 'bodyweight' | 'weighted';
+  mode?: ExerciseMode;
   targetRepsPerSet?: number;
   lastCompletedDate?: string;
   allTimePRWeight: number;
@@ -83,7 +85,7 @@ export interface ExerciseLog {
   completedReps: (number | null)[];
   isPR?: boolean;
   isDeload?: boolean;
-  mode?: 'bodyweight' | 'weighted';
+  mode?: ExerciseMode;
   completed: boolean;
 }
 
@@ -148,7 +150,17 @@ export interface UserSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   autoStartRestTimer: boolean;
+  enableInactivityDeload?: boolean; // Default true: suggest deload if away for >= 8 days
   githubToken?: string;
+}
+
+export interface InactivityDeloadSuggestion {
+  exerciseId: ExerciseId;
+  exerciseName: string;
+  daysElapsed: number;
+  percent: number; // 10, 20, 30, 50
+  currentWeight: number;
+  suggestedWeight: number;
 }
 
 export interface PlateCount {
@@ -178,6 +190,7 @@ export interface ProgressionResult {
   deloadPercent?: number;
   message: string;
   nextTargetReps?: number;
+  nextMode?: ExerciseMode;
 }
 
 export type MobilityCategory = 'yoga' | 'stretching' | 'pilates' | 'mobility';

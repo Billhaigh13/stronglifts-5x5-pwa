@@ -157,7 +157,111 @@ export function calculateNextProgression(
     }
   }
 
-  // 3. Barbell Compound Lifts (Linear Progression & Auto-Deload)
+  // 3. Skullcrushers (Two-Hand Dumbbell 3x10 graduating to 20kg Barbell)
+  if (exerciseId === 'skullcrushers') {
+    const mode = exerciseLog.mode || currentProgress.mode || (targetWeight < 20 ? 'dumbbell' : 'barbell');
+    const isSuccess = completedReps.length >= 3 && completedReps.slice(0, 3).every((r) => (r ?? 0) >= (targetReps[0] || 10));
+
+    if (mode === 'dumbbell') {
+      if (isSuccess) {
+        if (targetWeight < 20) {
+          const sortedInventory = [...dumbbellInventory].sort((a, b) => a - b);
+          const currentIndex = sortedInventory.findIndex((w) => w >= targetWeight);
+          const nextIndex = currentIndex >= 0 ? Math.min(currentIndex + 1, sortedInventory.length - 1) : 0;
+          const nextWeight = sortedInventory[nextIndex];
+          return {
+            nextWeight,
+            nextMode: 'dumbbell',
+            consecutiveFailures: 0,
+            isDeload: false,
+            nextTargetReps: 10,
+            message: `Crushed 3×10! Stepping up to the ${nextWeight} kg dumbbell (Target: 3×10).`,
+          };
+        } else {
+          // Reached or completed 20 kg with dumbbell -> Graduate to barbell!
+          return {
+            nextWeight: 20,
+            nextMode: 'barbell',
+            consecutiveFailures: 0,
+            isDeload: false,
+            nextTargetReps: 10,
+            message: `🏆 Outstanding! 3×10 at 20 kg conquered! Graduating to the 20 kg Olympic Barbell!`,
+          };
+        }
+      } else {
+        const nextFailures = currentProgress.consecutiveFailures + 1;
+        const failuresLimit = config.failuresBeforeDeload || 3;
+
+        if (nextFailures >= failuresLimit) {
+          const sortedInventory = [...dumbbellInventory].sort((a, b) => a - b);
+          const currentIndex = sortedInventory.findIndex((w) => w >= targetWeight);
+          const deloadIndex = Math.max(0, currentIndex - 1);
+          const deloadWeight = sortedInventory[deloadIndex];
+
+          return {
+            nextWeight: deloadWeight,
+            nextMode: 'dumbbell',
+            consecutiveFailures: 0,
+            isDeload: true,
+            nextTargetReps: 10,
+            message: `${failuresLimit} consecutive misses. Deloading to ${deloadWeight} kg dumbbell to rebuild strength.`,
+          };
+        } else {
+          return {
+            nextWeight: targetWeight,
+            nextMode: 'dumbbell',
+            consecutiveFailures: nextFailures,
+            isDeload: false,
+            nextTargetReps: 10,
+            message: `Missed 3×10 (Attempt ${nextFailures}/${failuresLimit}). Stay at ${targetWeight} kg for next session.`,
+          };
+        }
+      }
+    } else {
+      // Barbell mode (3x10 linear progression)
+      const increment = config.increment > 0 ? config.increment : 2.5;
+
+      if (isSuccess) {
+        return {
+          nextWeight: targetWeight + increment,
+          consecutiveFailures: 0,
+          isDeload: false,
+          nextTargetReps: 10,
+          nextMode: 'barbell',
+          message: `Success! Added +${increment} kg for next session (${targetWeight + increment} kg).`,
+        };
+      } else {
+        const nextFailures = currentProgress.consecutiveFailures + 1;
+        const failuresLimit = config.failuresBeforeDeload || 3;
+
+        if (nextFailures >= failuresLimit) {
+          const rawDeload = targetWeight * ((100 - (config.deloadPercentage || 10)) / 100);
+          const deloadedWeight = Math.max(20, Math.floor(rawDeload / 2.5) * 2.5);
+
+          return {
+            nextWeight: deloadedWeight,
+            consecutiveFailures: 0,
+            isDeload: true,
+            nextTargetReps: 10,
+            nextMode: 'barbell',
+            deloadPercent: config.deloadPercentage || 10,
+            message: `${failuresLimit} consecutive misses. Auto-deloading to ${deloadedWeight} kg.`,
+          };
+        } else {
+          return {
+            nextWeight: targetWeight,
+            consecutiveFailures: nextFailures,
+            isDeload: false,
+            nextTargetReps: 10,
+            nextMode: 'barbell',
+            message: `Missed 3×10 (Attempt ${nextFailures}/${failuresLimit}). Staying at ${targetWeight} kg for next session.`,
+          };
+        }
+      }
+    }
+  }
+
+  // 4. Barbell Compound Lifts (Linear Progression & Auto-Deload)
   const isFullSuccess = completedReps.length >= targetReps.length &&
     completedReps.every((reps, idx) => (reps ?? 0) >= targetReps[idx]);
 

@@ -107,12 +107,12 @@ export const EXERCISE_DEFINITIONS: Record<ExerciseId, ExerciseDefinition> = {
   },
   skullcrushers: {
     id: 'skullcrushers',
-    name: 'Barbell Skullcrushers',
+    name: 'Skullcrushers',
     category: 'barbell_compound',
     defaultSets: 3,
     defaultTargetReps: 10,
     increment: 2.5,
-    defaultWeight: 20,
+    defaultWeight: 7.5,
     isFloorLift: false,
   },
   incline_bench: {
@@ -391,6 +391,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   autoStartRestTimer: true,
+  enableInactivityDeload: true,
 };
 
 export const OLYMPIC_PLATE_COLORS: Record<number, { bg: string; text: string; border?: string; height: string }> = {

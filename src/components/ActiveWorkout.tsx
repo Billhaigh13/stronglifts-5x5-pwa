@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, Award, ChevronRight } from 'lucide-react';
-import type { ExerciseId, ExerciseLog, ExerciseProgressState, MobilityRoutine, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
+import type { ExerciseId, ExerciseLog, ExerciseMode, ExerciseProgressState, InactivityDeloadSuggestion, MobilityRoutine, ProgressionResult, UserSettings, WarmupSet, WorkoutSession, WorkoutType } from '../types';
 import { DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS } from '../utils/constants';
 import { getEffectiveProgram } from '../utils/programs';
 import { MOBILITY_ROUTINES } from '../data/mobilityRoutines';
 import { calculateWarmupSets } from '../utils/warmup';
 import { calculateNextProgression } from '../utils/progression';
+import { checkRoutineInactivitySuggestions } from '../utils/inactivity';
 import { ExerciseCard } from './ExerciseCard';
 import { RestTimer } from './RestTimer';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
@@ -14,6 +15,7 @@ import { ProgressionSettingsModal } from './ProgressionSettingsModal';
 import { ExerciseGuideModal } from './ExerciseGuideModal';
 import { WeeklyScheduleStrip } from './WeeklyScheduleStrip';
 import { ScheduleSettingsModal } from './ScheduleSettingsModal';
+import { InactivityDeloadModal } from './InactivityDeloadModal';
 import { saveWorkout, updateExerciseProgress } from '../db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -67,6 +69,10 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [guideExerciseId, setGuideExerciseId] = useState<ExerciseId | null>(null);
   const [activeProgressionExId, setActiveProgressionExId] = useState<ExerciseId>('squat');
   const [progressionResults, setProgressionResults] = useState<Record<string, ProgressionResult>>({});
+
+  const [isInactivityModalOpen, setIsInactivityModalOpen] = useState<boolean>(false);
+  const [inactivitySuggestions, setInactivitySuggestions] = useState<InactivityDeloadSuggestion[]>([]);
+  const [pendingWorkoutType, setPendingWorkoutType] = useState<WorkoutType | null>(null);
 
   const timerIntervalRef = useRef<any>(null);
 
@@ -159,9 +165,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     });
   };
 
-  const handleStartWorkout = (type: WorkoutType) => {
+  const startActiveWorkout = (type: WorkoutType, weightOverrides: Record<string, number> = {}) => {
     setSelectedType(type);
     const routine = activeProgram.routines[type];
+    if (!routine) return;
+
     const initialLogs: ExerciseLog[] = routine.exerciseIds.map((exId) => {
       const def = EXERCISE_DEFINITIONS[exId] || {
         id: exId,
@@ -173,8 +181,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         defaultWeight: 20,
       };
       const prog = exerciseProgress[exId];
-      const baseWeight = prog ? prog.currentWeight : def.defaultWeight;
-      const weight = def.category === 'barbell_compound' ? Math.max(baseWeight, userSettings.barWeight) : baseWeight;
+      const baseWeight = weightOverrides[exId] ?? (prog ? prog.currentWeight : def.defaultWeight);
+      const isSkullcrushers = exId === 'skullcrushers';
+      const skullcrushersMode: ExerciseMode = prog?.mode || (baseWeight >= 20 ? 'barbell' : 'dumbbell');
+      const isBarbell = isSkullcrushers ? skullcrushersMode === 'barbell' : def.category === 'barbell_compound';
+      const weight = isBarbell ? Math.max(baseWeight, userSettings.barWeight) : baseWeight;
       const targetRepsCount = def.defaultSets;
 
       let targetReps: number[];
@@ -186,12 +197,21 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         targetReps = Array(targetRepsCount).fill(targetPerSet);
       } else if (exId === 'pullups' || exId === 'dips') {
         targetReps = Array(targetRepsCount).fill(10);
-      } else if (exId === 'skullcrushers' || exId === 'incline_bench' || exId === 'barbell_curl') {
+      } else if (exId === 'skullcrushers') {
+        targetReps = Array(targetRepsCount).fill(10);
+      } else if (exId === 'incline_bench' || exId === 'barbell_curl') {
         targetReps = Array(targetRepsCount).fill(typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 8);
       } else if (exId === 'plank') {
         targetReps = Array(targetRepsCount).fill(60);
       } else {
         targetReps = Array(targetRepsCount).fill(typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5);
+      }
+
+      let mode: ExerciseMode | undefined = undefined;
+      if (exId === 'pullups' || exId === 'dips') {
+        mode = prog?.mode || 'bodyweight';
+      } else if (exId === 'skullcrushers') {
+        mode = skullcrushersMode;
       }
 
       return {
@@ -201,16 +221,20 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         targetReps,
         completedReps: Array(targetRepsCount).fill(null),
         completed: false,
-        mode: (exId === 'pullups' || exId === 'dips') ? (prog?.mode || 'bodyweight') : undefined,
+        mode,
       };
     });
 
     const initialWarmups: Record<string, WarmupSet[]> = {};
     routine.exerciseIds.forEach((exId) => {
       const def = EXERCISE_DEFINITIONS[exId];
-      if (def && def.category === 'barbell_compound') {
-        const prog = exerciseProgress[exId];
-        const weight = prog ? prog.currentWeight : def.defaultWeight;
+      const prog = exerciseProgress[exId];
+      const baseWeight = weightOverrides[exId] ?? (prog ? prog.currentWeight : def.defaultWeight);
+      const isSkull = exId === 'skullcrushers';
+      const skullMode = prog?.mode || (baseWeight >= 20 ? 'barbell' : 'dumbbell');
+      const isBarbell = isSkull ? skullMode === 'barbell' : def && def.category === 'barbell_compound';
+      if (isBarbell) {
+        const weight = Math.max(baseWeight, userSettings.barWeight);
         initialWarmups[exId] = calculateWarmupSets(exId, weight, userSettings.barWeight);
       }
     });
@@ -228,6 +252,58 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       duration: 0,
       type,
     });
+  };
+
+  const handleStartWorkout = (type: WorkoutType) => {
+    setSelectedType(type);
+    const routine = activeProgram.routines[type];
+    if (!routine) return;
+
+    if (userSettings.enableInactivityDeload !== false) {
+      const suggestions = checkRoutineInactivitySuggestions(
+        routine.exerciseIds,
+        exerciseProgress,
+        userSettings,
+        lastWorkout?.date
+      );
+
+      if (suggestions.length > 0) {
+        setPendingWorkoutType(type);
+        setInactivitySuggestions(suggestions);
+        setIsInactivityModalOpen(true);
+        return;
+      }
+    }
+
+    startActiveWorkout(type);
+  };
+
+  const handleApplyInactivityDeload = async (selectedExerciseIds: ExerciseId[]) => {
+    setIsInactivityModalOpen(false);
+    const type = pendingWorkoutType || selectedType;
+    const overrides: Record<string, number> = {};
+
+    for (const s of inactivitySuggestions) {
+      if (selectedExerciseIds.includes(s.exerciseId)) {
+        overrides[s.exerciseId] = s.suggestedWeight;
+        const currentProg = exerciseProgress[s.exerciseId];
+        if (currentProg) {
+          await updateExerciseProgress({
+            ...currentProg,
+            currentWeight: s.suggestedWeight,
+            consecutiveFailures: 0,
+          });
+        }
+      }
+    }
+
+    startActiveWorkout(type, overrides);
+  };
+
+  const handleKeepCurrentWeightsAndStart = () => {
+    setIsInactivityModalOpen(false);
+    const type = pendingWorkoutType || selectedType;
+    startActiveWorkout(type);
   };
 
   const handleCycleSetReps = (exerciseId: ExerciseId, setIndex: number) => {
@@ -290,7 +366,12 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     );
 
     const def = EXERCISE_DEFINITIONS[exerciseId];
-    if (def && def.category === 'barbell_compound') {
+    const log = exerciseLogs.find((l) => l.exerciseId === exerciseId);
+    const isBarbell = exerciseId === 'skullcrushers'
+      ? (log?.mode === 'barbell' || (newWeight >= 20 && log?.mode !== 'dumbbell'))
+      : def && def.category === 'barbell_compound';
+
+    if (isBarbell) {
       setWarmupSetsMap((prev) => ({
         ...prev,
         [exerciseId]: calculateWarmupSets(exerciseId, newWeight, userSettings.barWeight),
@@ -312,6 +393,52 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         };
       })
     );
+  };
+
+  const handleToggleExerciseMode = (exerciseId: ExerciseId, mode: ExerciseMode) => {
+    if (exerciseId === 'pullups' || exerciseId === 'dips') {
+      handleTogglePullupMode(exerciseId, mode as 'bodyweight' | 'weighted');
+      return;
+    }
+    if (exerciseId === 'skullcrushers') {
+      let updatedWeight = 0;
+      setExerciseLogs((prev) =>
+        prev.map((log) => {
+          if (log.exerciseId !== exerciseId) return log;
+          let targetWeight = log.targetWeight;
+          if (mode === 'dumbbell') {
+            const sorted = [...(userSettings.dumbbellInventory || [7.5, 10, 12.5, 15, 17.5, 20])].sort((a, b) => a - b);
+            const maxDumbbell = sorted[sorted.length - 1] ?? 20;
+            targetWeight = Math.min(targetWeight, maxDumbbell, 20);
+            if (targetWeight <= 0) targetWeight = 7.5;
+          } else if (mode === 'barbell') {
+            targetWeight = Math.max(targetWeight, userSettings.barWeight || 20);
+          }
+          updatedWeight = targetWeight;
+          return {
+            ...log,
+            mode,
+            targetWeight,
+            targetReps: [10, 10, 10],
+            completedReps: Array(3).fill(null),
+          };
+        })
+      );
+
+      if (mode === 'barbell') {
+        const weight = Math.max(updatedWeight || 20, userSettings.barWeight || 20);
+        setWarmupSetsMap((prev) => ({
+          ...prev,
+          [exerciseId]: calculateWarmupSets(exerciseId, weight, userSettings.barWeight),
+        }));
+      } else {
+        setWarmupSetsMap((prev) => {
+          const next = { ...prev };
+          delete next[exerciseId];
+          return next;
+        });
+      }
+    }
   };
 
   const handleToggleWarmupSet = (exerciseId: ExerciseId, setIndex: number) => {
@@ -395,7 +522,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
           currentWeight: prog.nextWeight,
           consecutiveFailures: prog.consecutiveFailures,
           targetRepsPerSet: prog.nextTargetReps || current.targetRepsPerSet,
-          mode: log.mode,
+          mode: prog.nextMode || log.mode,
           allTimePRWeight: Math.max(current.allTimePRWeight, log.targetWeight),
           allTimePRReps: Math.max(current.allTimePRReps, maxRep),
           lastCompletedDate: new Date().toISOString(),
@@ -598,6 +725,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                 onCycleSetReps={handleCycleSetReps}
                 onUpdateWeight={handleUpdateWeight}
                 onTogglePullupMode={handleTogglePullupMode}
+                onToggleExerciseMode={handleToggleExerciseMode}
                 onToggleWarmupSet={handleToggleWarmupSet}
                 onOpenProgressionModal={(exId) => {
                   setActiveProgressionExId(exId);
@@ -717,6 +845,15 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             await onUpdateUserSettings({ ...userSettings, schedulePreference: newPref });
           }
         }}
+      />
+
+      <InactivityDeloadModal
+        isOpen={isInactivityModalOpen}
+        suggestions={inactivitySuggestions}
+        unit={userSettings.unit}
+        onApplyAndStart={handleApplyInactivityDeload}
+        onKeepAndStart={handleKeepCurrentWeightsAndStart}
+        onClose={() => setIsInactivityModalOpen(false)}
       />
     </div>
   );
