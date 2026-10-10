@@ -161,6 +161,8 @@ export interface InactivityDeloadSuggestion {
   percent: number; // 10, 20, 30, 50
   currentWeight: number;
   suggestedWeight: number;
+  currentReps?: number;
+  suggestedReps?: number;
 }
 
 export interface PlateCount {
