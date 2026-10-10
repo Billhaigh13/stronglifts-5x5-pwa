@@ -76,19 +76,31 @@ export function calculateNextProgression(
       const failuresLimit = config.failuresBeforeDeload || 3;
 
       if (nextFailures >= failuresLimit) {
-        const sortedInventory = [...dumbbellInventory].sort((a, b) => a - b);
-        const currentIndex = sortedInventory.findIndex((w) => w >= targetWeight);
-        const deloadIndex = Math.max(0, currentIndex - 1);
-        const deloadWeight = sortedInventory[deloadIndex];
+        if (currentRepTarget > repRangeMin) {
+          const nextTargetReps = Math.max(repRangeMin, currentRepTarget - repStep);
+          return {
+            nextWeight: targetWeight,
+            consecutiveFailures: 0,
+            isDeload: true,
+            nextTargetReps,
+            message: `${failuresLimit} consecutive misses at 3×${currentRepTarget}. Stepping down ladder to 3×${nextTargetReps} at ${targetWeight} kg to consolidate volume.`,
+          };
+        } else {
+          const sortedInventory = [...dumbbellInventory].sort((a, b) => a - b);
+          const currentIndex = sortedInventory.findIndex((w) => w >= targetWeight);
+          const deloadIndex = Math.max(0, currentIndex - 1);
+          const deloadWeight = sortedInventory[deloadIndex];
+          const nextTargetReps = Math.max(repRangeMin, repRangeMax - repStep);
 
-        return {
-          nextWeight: deloadWeight,
-          consecutiveFailures: 0,
-          isDeload: true,
-          nextTargetReps: repRangeMin,
-          deloadPercent: config.deloadPercentage || 10,
-          message: `${failuresLimit} consecutive misses. Deloading down to ${deloadWeight} kg (Target: 3×${repRangeMin}) to rebuild volume.`,
-        };
+          return {
+            nextWeight: deloadWeight,
+            consecutiveFailures: 0,
+            isDeload: true,
+            nextTargetReps,
+            deloadPercent: config.deloadPercentage || 10,
+            message: `${failuresLimit} consecutive misses. Deloading down to ${deloadWeight} kg (Target: 3×${nextTargetReps}) to rebuild volume.`,
+          };
+        }
       } else {
         return {
           nextWeight: targetWeight,

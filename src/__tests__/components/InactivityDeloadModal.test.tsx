@@ -136,4 +136,51 @@ describe('InactivityDeloadModal Component', () => {
 
     expect(handleKeep).toHaveBeenCalledTimes(1);
   });
+
+  it('renders rep ladder progression deloads with clear rep transition notation', () => {
+    const repLadderSuggestions: InactivityDeloadSuggestion[] = [
+      {
+        exerciseId: 'bicep_curl',
+        exerciseName: 'Dumbbell Bicep Curls',
+        daysElapsed: 10,
+        percent: 10,
+        currentWeight: 10,
+        suggestedWeight: 10,
+        currentReps: 12,
+        suggestedReps: 10,
+      },
+      {
+        exerciseId: 'hammer_curl',
+        exerciseName: 'Dumbbell Hammer Curls',
+        daysElapsed: 12,
+        percent: 10,
+        currentWeight: 10,
+        suggestedWeight: 7.5,
+        currentReps: 8,
+        suggestedReps: 10,
+      },
+    ];
+
+    render(
+      <InactivityDeloadModal
+        isOpen={true}
+        suggestions={repLadderSuggestions}
+        unit="kg"
+        onApplyAndStart={vi.fn()}
+        onKeepAndStart={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    // Dumbbell Bicep Curls: weight is 10 kg, reps step 3×12 -> 3×10
+    expect(screen.getByText('Dumbbell Bicep Curls')).toBeDefined();
+    expect(screen.getByText('3×12')).toBeDefined();
+    expect(screen.getAllByText('3×10').length).toBeGreaterThanOrEqual(1);
+
+    // Dumbbell Hammer Curls: weight drops 10 -> 7.5 kg, reps step 3×8 -> 3×10
+    expect(screen.getByText('Dumbbell Hammer Curls')).toBeDefined();
+    expect(screen.getByText('3×8')).toBeDefined();
+    expect(screen.getByText('7.5')).toBeDefined();
+  });
 });
+

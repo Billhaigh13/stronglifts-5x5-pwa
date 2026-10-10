@@ -134,14 +134,56 @@ export const InactivityDeloadModal: React.FC<InactivityDeloadModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5 text-right font-mono">
-                  <span className="text-xs text-gym-muted line-through font-semibold">
-                    {suggestion.currentWeight}
-                  </span>
-                  <ArrowRight className="w-3 h-3 text-gym-dimmed" />
-                  <span className="text-sm font-black text-gym-accent">
-                    {suggestion.suggestedWeight}{' '}
-                    <span className="text-[10px] font-sans text-gym-muted">{unit}</span>
-                  </span>
+                  {suggestion.currentReps && suggestion.suggestedReps && suggestion.currentReps !== suggestion.suggestedReps ? (
+                    suggestion.currentWeight === suggestion.suggestedWeight ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs font-black text-gym-text">
+                          {suggestion.currentWeight} <span className="text-[10px] font-sans text-gym-muted">{unit}</span>
+                        </span>
+                        <div className="flex items-center gap-1 text-[11px]">
+                          <span className="text-gym-muted line-through font-semibold">
+                            3×{suggestion.currentReps}
+                          </span>
+                          <ArrowRight className="w-2.5 h-2.5 text-gym-dimmed" />
+                          <span className="font-black text-gym-accent">
+                            3×{suggestion.suggestedReps}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gym-muted line-through font-semibold">
+                            {suggestion.currentWeight}
+                          </span>
+                          <ArrowRight className="w-2.5 h-2.5 text-gym-dimmed" />
+                          <span className="text-sm font-black text-gym-accent">
+                            {suggestion.suggestedWeight} <span className="text-[10px] font-sans text-gym-muted">{unit}</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span className="text-gym-muted line-through">
+                            3×{suggestion.currentReps}
+                          </span>
+                          <ArrowRight className="w-2 h-2 text-gym-dimmed" />
+                          <span className="font-bold text-gym-accent">
+                            3×{suggestion.suggestedReps}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <>
+                      <span className="text-xs text-gym-muted line-through font-semibold">
+                        {suggestion.currentWeight}
+                      </span>
+                      <ArrowRight className="w-3 h-3 text-gym-dimmed" />
+                      <span className="text-sm font-black text-gym-accent">
+                        {suggestion.suggestedWeight}{' '}
+                        <span className="text-[10px] font-sans text-gym-muted">{unit}</span>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             );

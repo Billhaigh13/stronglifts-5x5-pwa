@@ -165,7 +165,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     });
   };
 
-  const startActiveWorkout = (type: WorkoutType, weightOverrides: Record<string, number> = {}) => {
+  const startActiveWorkout = (
+    type: WorkoutType,
+    weightOverrides: Record<string, number> = {},
+    repOverrides: Record<string, number> = {}
+  ) => {
     setSelectedType(type);
     const routine = activeProgram.routines[type];
     if (!routine) return;
@@ -192,7 +196,9 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       const config = userSettings.progressionConfigs?.[exId] || DEFAULT_PROGRESSION_CONFIGS[exId];
       const isDoubleProgression = config?.strategy === 'double_progression' || def.category === 'dumbbell_accessory';
 
-      if (isDoubleProgression) {
+      if (repOverrides[exId] !== undefined) {
+        targetReps = Array(targetRepsCount).fill(repOverrides[exId]);
+      } else if (isDoubleProgression) {
         const targetPerSet = prog?.targetRepsPerSet || config?.repRangeMin || def.repRangeMin || 8;
         targetReps = Array(targetRepsCount).fill(targetPerSet);
       } else if (exId === 'pullups' || exId === 'dips') {
@@ -281,23 +287,37 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const handleApplyInactivityDeload = async (selectedExerciseIds: ExerciseId[]) => {
     setIsInactivityModalOpen(false);
     const type = pendingWorkoutType || selectedType;
-    const overrides: Record<string, number> = {};
+    const weightOverrides: Record<string, number> = {};
+    const repOverrides: Record<string, number> = {};
 
     for (const s of inactivitySuggestions) {
       if (selectedExerciseIds.includes(s.exerciseId)) {
-        overrides[s.exerciseId] = s.suggestedWeight;
+        weightOverrides[s.exerciseId] = s.suggestedWeight;
+        if (s.suggestedReps !== undefined) {
+          repOverrides[s.exerciseId] = s.suggestedReps;
+        }
         const currentProg = exerciseProgress[s.exerciseId];
         if (currentProg) {
           await updateExerciseProgress({
             ...currentProg,
             currentWeight: s.suggestedWeight,
+            targetRepsPerSet: s.suggestedReps ?? currentProg.targetRepsPerSet,
             consecutiveFailures: 0,
+          });
+        } else {
+          await updateExerciseProgress({
+            exerciseId: s.exerciseId,
+            currentWeight: s.suggestedWeight,
+            targetRepsPerSet: s.suggestedReps,
+            consecutiveFailures: 0,
+            allTimePRWeight: s.currentWeight,
+            allTimePRReps: s.currentReps ?? 5,
           });
         }
       }
     }
 
-    startActiveWorkout(type, overrides);
+    startActiveWorkout(type, weightOverrides, repOverrides);
   };
 
   const handleKeepCurrentWeightsAndStart = () => {
