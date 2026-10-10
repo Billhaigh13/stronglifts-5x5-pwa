@@ -1,11 +1,13 @@
-import type { ExerciseId, ExerciseMode, ExerciseProgressState, InactivityDeloadSuggestion, UserSettings } from '../types';
-import { DEFAULT_DUMBBELL_INVENTORY, EXERCISE_DEFINITIONS } from './constants';
+import type { ExerciseId, ExerciseMode, ExerciseProgressState, ExerciseProgressionConfig, InactivityDeloadSuggestion, UserSettings } from '../types';
+import { DEFAULT_DUMBBELL_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, EXERCISE_DEFINITIONS } from './constants';
 
 export interface InactivityOptions {
   now?: number | Date;
   barWeight?: number;
   dumbbellInventory?: number[];
   mode?: ExerciseMode;
+  currentReps?: number;
+  progressionConfig?: ExerciseProgressionConfig;
 }
 
 /**
@@ -98,20 +100,164 @@ export function calculateInactivityDeload(
     const sortedInv = [...rawInv].sort((a, b) => a - b);
     const currentIndex = sortedInv.findIndex((w) => w >= currentWeight);
 
+    const isDoubleProg = (def?.category === 'dumbbell_accessory' || options.progressionConfig?.strategy === 'double_progression' || exerciseId === 'bicep_curl' || exerciseId === 'hammer_curl') && !isSkullcrushers;
+
+    if (isDoubleProg) {
+      const repRangeMin = options.progressionConfig?.repRangeMin ?? def?.repRangeMin ?? 8;
+      const repRangeMax = options.progressionConfig?.repRangeMax ?? def?.repRangeMax ?? 12;
+      const repStep = options.progressionConfig?.repStep ?? 2;
+      const currentReps = options.currentReps ?? repRangeMin;
+
+      // Tier 1: 8–14 days (1–2 weeks off / 10%)
+      if (percent === 10) {
+        if (currentReps > repRangeMin) {
+          // Option 1: Step down 1 rung on the rep ladder at the SAME weight! (e.g. 12 -> 10, or 10 -> 8)
+          const suggestedReps = Math.max(repRangeMin, currentReps - repStep);
+          return {
+            exerciseId,
+            exerciseName: def?.name || exerciseId,
+            daysElapsed,
+            percent,
+            currentWeight,
+            suggestedWeight: currentWeight,
+            currentReps,
+            suggestedReps,
+          };
+        } else {
+          // Already at bottom of ladder (e.g. 8 reps) -> drop 1 dumbbell size in rack
+          if (currentIndex <= 0) return null;
+          const suggestedWeight = sortedInv[currentIndex - 1];
+          const suggestedReps = Math.max(repRangeMin, repRangeMax - repStep);
+          return {
+            exerciseId,
+            exerciseName: def?.name || exerciseId,
+            daysElapsed,
+            percent,
+            currentWeight,
+            suggestedWeight,
+            currentReps,
+            suggestedReps,
+          };
+        }
+      }
+
+      // Tier 2: 15–21 days (2–3 weeks off / 20%)
+      if (percent === 20) {
+        if (currentReps >= repRangeMax) {
+          // Step down 2 rungs to min reps at SAME weight (e.g. 12 -> 8 reps @ 10kg)
+          return {
+            exerciseId,
+            exerciseName: def?.name || exerciseId,
+            daysElapsed,
+            percent,
+            currentWeight,
+            suggestedWeight: currentWeight,
+            currentReps,
+            suggestedReps: repRangeMin,
+          };
+        } else {
+          // Drop 1 dumbbell size in rack
+          if (currentIndex <= 0) {
+            if (currentReps > repRangeMin) {
+              return {
+                exerciseId,
+                exerciseName: def?.name || exerciseId,
+                daysElapsed,
+                percent,
+                currentWeight,
+                suggestedWeight: currentWeight,
+                currentReps,
+                suggestedReps: repRangeMin,
+              };
+            }
+            return null;
+          }
+          const suggestedWeight = sortedInv[currentIndex - 1];
+          const suggestedReps = currentReps > repRangeMin ? Math.max(repRangeMin, repRangeMax - repStep) : repRangeMin;
+          return {
+            exerciseId,
+            exerciseName: def?.name || exerciseId,
+            daysElapsed,
+            percent,
+            currentWeight,
+            suggestedWeight,
+            currentReps,
+            suggestedReps,
+          };
+        }
+      }
+
+      // Tier 3: 22–30 days (3–4 weeks off / 30%)
+      if (percent === 30) {
+        if (currentIndex <= 0) {
+          if (currentReps > repRangeMin) {
+            return {
+              exerciseId,
+              exerciseName: def?.name || exerciseId,
+              daysElapsed,
+              percent,
+              currentWeight,
+              suggestedWeight: currentWeight,
+              currentReps,
+              suggestedReps: repRangeMin,
+            };
+          }
+          return null;
+        }
+        const suggestedWeight = sortedInv[currentIndex - 1];
+        return {
+          exerciseId,
+          exerciseName: def?.name || exerciseId,
+          daysElapsed,
+          percent,
+          currentWeight,
+          suggestedWeight,
+          currentReps,
+          suggestedReps: repRangeMin,
+        };
+      }
+
+      // Tier 4: 31+ days (> 1 month / 50%)
+      const halfWeight = currentWeight * 0.5;
+      let closestIdx = 0;
+      let minDiff = Infinity;
+      sortedInv.forEach((w, idx) => {
+        const diff = Math.abs(w - halfWeight);
+        if (diff < minDiff && idx < currentIndex) {
+          minDiff = diff;
+          closestIdx = idx;
+        }
+      });
+      const suggestedWeight = sortedInv[closestIdx];
+      if (suggestedWeight >= currentWeight && currentReps <= repRangeMin) {
+        return null;
+      }
+      return {
+        exerciseId,
+        exerciseName: def?.name || exerciseId,
+        daysElapsed,
+        percent,
+        currentWeight,
+        suggestedWeight: suggestedWeight < currentWeight ? suggestedWeight : currentWeight,
+        currentReps,
+        suggestedReps: repRangeMin,
+      };
+    }
+
+    // Fixed Dumbbell Exercises (e.g. Skullcrushers 3x10 in dumbbell mode):
     if (currentIndex <= 0) {
-      // Already at or below lowest dumbbell in inventory
       return null;
     }
 
     let targetIndex: number;
-    if (percent === 10) {
+    if (percent <= 20) {
+      // 8–21 days: cap at 1 dumbbell size drop
       targetIndex = Math.max(0, currentIndex - 1);
-    } else if (percent === 20) {
-      targetIndex = Math.max(0, currentIndex - 2);
     } else if (percent === 30) {
-      targetIndex = Math.max(0, currentIndex - 3);
+      // 22–30 days: drop 2 dumbbell sizes
+      targetIndex = Math.max(0, currentIndex - 2);
     } else {
-      // 50% deload: find closest dumbbell to half the current weight
+      // 50% deload
       const halfWeight = currentWeight * 0.5;
       let closestIdx = 0;
       let minDiff = Infinity;
@@ -191,12 +337,16 @@ export function checkRoutineInactivitySuggestions(
 
     const baseWeight = prog ? prog.currentWeight : def.defaultWeight;
     const mode = prog?.mode;
+    const config = userSettings.progressionConfigs?.[exId] || DEFAULT_PROGRESSION_CONFIGS[exId];
+    const currentReps = prog?.targetRepsPerSet || config?.repRangeMin || def?.repRangeMin;
 
     const suggestion = calculateInactivityDeload(exId, baseWeight, lastCompleted, {
       now,
       barWeight: userSettings.barWeight,
       dumbbellInventory: userSettings.dumbbellInventory,
       mode,
+      currentReps,
+      progressionConfig: config,
     });
 
     if (suggestion) {

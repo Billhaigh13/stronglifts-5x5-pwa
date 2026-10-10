@@ -250,6 +250,58 @@ describe('calculateNextProgression', () => {
       expect(result.nextTargetReps).toBe(10);
       expect(result.message).toContain('3×10 at 7.5 kg');
     });
+
+    it('steps down 1 rep ladder rung on 3 consecutive misses when above min reps', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'bicep_curl',
+        exerciseName: 'Dumbbell Bicep Curls',
+        targetWeight: 10,
+        targetReps: [12, 12, 12],
+        completedReps: [12, 10, 8], // missed target
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'bicep_curl',
+        currentWeight: 10,
+        targetRepsPerSet: 12,
+        consecutiveFailures: 2, // 3rd failure
+        allTimePRWeight: 10,
+        allTimePRReps: 12,
+      };
+
+      const result = calculateNextProgression('bicep_curl', log, prog, defaultInventory);
+      expect(result.isDeload).toBe(true);
+      expect(result.nextWeight).toBe(10); // keeps same weight
+      expect(result.nextTargetReps).toBe(10); // steps down ladder from 12 to 10
+      expect(result.consecutiveFailures).toBe(0);
+      expect(result.message).toContain('Stepping down ladder to 3×10 at 10 kg');
+    });
+
+    it('drops 1 dumbbell size in rack on 3 consecutive misses when already at min reps (8 reps)', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'bicep_curl',
+        exerciseName: 'Dumbbell Bicep Curls',
+        targetWeight: 10,
+        targetReps: [8, 8, 8],
+        completedReps: [8, 7, 6], // missed target
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'bicep_curl',
+        currentWeight: 10,
+        targetRepsPerSet: 8,
+        consecutiveFailures: 2, // 3rd failure
+        allTimePRWeight: 10,
+        allTimePRReps: 8,
+      };
+
+      const result = calculateNextProgression('bicep_curl', log, prog, defaultInventory);
+      expect(result.isDeload).toBe(true);
+      expect(result.nextWeight).toBe(9); // drops from 10kg to 9kg
+      expect(result.nextTargetReps).toBe(10); // 12 - 2 = 10
+      expect(result.consecutiveFailures).toBe(0);
+      expect(result.message).toContain('Deloading down to 9 kg (Target: 3×10)');
+    });
   });
 
   describe('Pull-ups & Chin-ups Progression', () => {

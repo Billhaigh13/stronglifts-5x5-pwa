@@ -86,38 +86,89 @@ describe('calculateInactivityDeload', () => {
     });
   });
 
-  describe('Dumbbell Exercises', () => {
+  describe('Dumbbell Exercises (Double Progression Ladder - Option 1)', () => {
     const dumbbellRack = [2, 4, 5, 7.5, 9, 10, 12.5, 15, 17.5, 20];
 
-    it('steps 1 dumbbell down in rack for 10% deload', () => {
+    it('steps down 1 rep ladder rung at SAME weight for 10% deload when at 12 reps', () => {
       const result = calculateInactivityDeload('bicep_curl', 10, daysAgo(10), {
         now: baseDate,
         dumbbellInventory: dumbbellRack,
+        currentReps: 12,
       });
       expect(result).not.toBeNull();
       expect(result?.percent).toBe(10);
-      expect(result?.suggestedWeight).toBe(9);
+      expect(result?.currentWeight).toBe(10);
+      expect(result?.suggestedWeight).toBe(10);
+      expect(result?.currentReps).toBe(12);
+      expect(result?.suggestedReps).toBe(10);
     });
 
-    it('steps 2 dumbbells down in rack for 20% deload', () => {
+    it('steps down 1 rep ladder rung at SAME weight for 10% deload when at 10 reps', () => {
+      const result = calculateInactivityDeload('bicep_curl', 10, daysAgo(10), {
+        now: baseDate,
+        dumbbellInventory: dumbbellRack,
+        currentReps: 10,
+      });
+      expect(result).not.toBeNull();
+      expect(result?.suggestedWeight).toBe(10);
+      expect(result?.suggestedReps).toBe(8);
+    });
+
+    it('drops 1 dumbbell size in rack when already at min reps (8 reps) for 10% deload', () => {
+      const result = calculateInactivityDeload('bicep_curl', 10, daysAgo(10), {
+        now: baseDate,
+        dumbbellInventory: dumbbellRack,
+        currentReps: 8,
+      });
+      expect(result).not.toBeNull();
+      expect(result?.suggestedWeight).toBe(9);
+      expect(result?.suggestedReps).toBe(10);
+    });
+
+    it('steps down to min reps (8 reps) at SAME weight for 20% deload when at 12 reps', () => {
       const result = calculateInactivityDeload('bicep_curl', 10, daysAgo(18), {
         now: baseDate,
         dumbbellInventory: dumbbellRack,
+        currentReps: 12,
       });
       expect(result).not.toBeNull();
-      expect(result?.suggestedWeight).toBe(7.5);
+      expect(result?.percent).toBe(20);
+      expect(result?.suggestedWeight).toBe(10);
+      expect(result?.suggestedReps).toBe(8);
     });
 
-    it('returns null if dumbbell is already at lowest available weight', () => {
+    it('drops 1 dumbbell size in rack for 20% deload when at 8 reps', () => {
+      const result = calculateInactivityDeload('bicep_curl', 10, daysAgo(18), {
+        now: baseDate,
+        dumbbellInventory: dumbbellRack,
+        currentReps: 8,
+      });
+      expect(result).not.toBeNull();
+      expect(result?.suggestedWeight).toBe(9);
+      expect(result?.suggestedReps).toBe(8);
+    });
+
+    it('returns null if dumbbell is already at lowest available weight and min reps', () => {
       const result = calculateInactivityDeload('bicep_curl', 2, daysAgo(20), {
         now: baseDate,
         dumbbellInventory: dumbbellRack,
+        currentReps: 8,
       });
       expect(result).toBeNull();
     });
 
-    it('handles skullcrushers in dumbbell mode stepping down rack', () => {
+    it('handles fixed dumbbell mode (skullcrushers) capping at 1 dumbbell drop for 8–21 days', () => {
       const result = calculateInactivityDeload('skullcrushers', 15, daysAgo(16), {
+        now: baseDate,
+        mode: 'dumbbell',
+        dumbbellInventory: dumbbellRack,
+      });
+      expect(result).not.toBeNull();
+      expect(result?.suggestedWeight).toBe(12.5);
+    });
+
+    it('handles fixed dumbbell mode (skullcrushers) dropping 2 dumbbell sizes for 22–30 days', () => {
+      const result = calculateInactivityDeload('skullcrushers', 15, daysAgo(25), {
         now: baseDate,
         mode: 'dumbbell',
         dumbbellInventory: dumbbellRack,
