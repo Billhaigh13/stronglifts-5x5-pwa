@@ -413,6 +413,15 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         };
       })
     );
+
+    const currentProg = exerciseProgress[exerciseId];
+    if (currentProg) {
+      updateExerciseProgress({
+        ...currentProg,
+        mode,
+        currentWeight: mode === 'weighted' ? (currentProg.currentWeight || 2.5) : 0,
+      }).catch((err) => console.error('Failed to update pullup mode', err));
+    }
   };
 
   const handleToggleExerciseMode = (exerciseId: ExerciseId, mode: ExerciseMode) => {
@@ -428,9 +437,18 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
           let targetWeight = log.targetWeight;
           if (mode === 'dumbbell') {
             const sorted = [...(userSettings.dumbbellInventory || [7.5, 10, 12.5, 15, 17.5, 20])].sort((a, b) => a - b);
-            const maxDumbbell = sorted[sorted.length - 1] ?? 20;
-            targetWeight = Math.min(targetWeight, maxDumbbell, 20);
-            if (targetWeight <= 0) targetWeight = 7.5;
+            const defaultDb = sorted.find((w) => w >= 7.5) ?? sorted[0] ?? 7.5;
+            const prog = exerciseProgress[exerciseId];
+            if (prog?.mode === 'dumbbell' && prog.currentWeight < 20) {
+              targetWeight = prog.currentWeight;
+            } else if (targetWeight >= 20 || log.mode === 'barbell') {
+              // Switching from barbell back down to dumbbell starting weight
+              targetWeight = defaultDb;
+            } else {
+              const maxDumbbell = sorted[sorted.length - 1] ?? 20;
+              targetWeight = Math.min(targetWeight, maxDumbbell);
+              if (targetWeight <= 0) targetWeight = defaultDb;
+            }
           } else if (mode === 'barbell') {
             targetWeight = Math.max(targetWeight, userSettings.barWeight || 20);
           }
@@ -444,6 +462,16 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
           };
         })
       );
+
+      // Persist mode switch to exerciseProgress immediately
+      const currentProg = exerciseProgress[exerciseId];
+      if (currentProg) {
+        updateExerciseProgress({
+          ...currentProg,
+          mode,
+          currentWeight: updatedWeight || (mode === 'barbell' ? 20 : 7.5),
+        }).catch((err) => console.error('Failed to update skullcrushers mode', err));
+      }
 
       if (mode === 'barbell') {
         const weight = Math.max(updatedWeight || 20, userSettings.barWeight || 20);
@@ -688,11 +716,47 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                       </span>
                     </div>
                     <div className="text-xs font-mono font-black text-gym-cyan">
-                      {(exId === 'pullups' || exId === 'dips') && (!prog?.mode || prog.mode === 'bodyweight')
-                        ? '3×AMRAP'
-                        : exId === 'plank'
-                        ? '3×60s'
-                        : `${weight} ${userSettings.unit}`}
+                      {(exId === 'pullups' || exId === 'dips') && (!prog?.mode || prog.mode === 'bodyweight') ? (
+                        '3×AMRAP'
+                      ) : exId === 'skullcrushers' ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const skullMode = prog?.mode || (weight >= 20 ? 'barbell' : 'dumbbell');
+                            const nextMode: ExerciseMode = skullMode === 'dumbbell' ? 'barbell' : 'dumbbell';
+                            const sorted = [...(userSettings.dumbbellInventory || [7.5, 10, 12.5, 15, 17.5, 20])].sort((a, b) => a - b);
+                            const defaultDb = sorted.find((w) => w >= 7.5) ?? sorted[0] ?? 7.5;
+                            const nextWeight = nextMode === 'barbell'
+                              ? Math.max(weight, userSettings.barWeight || 20)
+                              : (weight < 20 ? weight : defaultDb);
+
+                            if (prog) {
+                              await updateExerciseProgress({
+                                ...prog,
+                                mode: nextMode,
+                                currentWeight: nextWeight,
+                              });
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded-lg border text-[11px] font-bold transition-all tap-active flex items-center gap-1.5 bg-gym-surface border-gym-border/60 text-gym-cyan hover:border-gym-accent"
+                          title="Click to toggle Skullcrushers mode (Dumbbell vs Barbell)"
+                        >
+                          <span>{weight} {userSettings.unit}</span>
+                          <span
+                            className={`text-[9px] px-1 py-0.2 rounded font-black uppercase ${
+                              (prog?.mode === 'dumbbell' || (!prog?.mode && weight < 20))
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                            }`}
+                          >
+                            {(prog?.mode === 'dumbbell' || (!prog?.mode && weight < 20)) ? 'DB' : 'Bar'}
+                          </span>
+                        </button>
+                      ) : exId === 'plank' ? (
+                        '3×60s'
+                      ) : (
+                        `${weight} ${userSettings.unit}`
+                      )}
                     </div>
                   </div>
                 );

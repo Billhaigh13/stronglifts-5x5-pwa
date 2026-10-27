@@ -7,6 +7,7 @@ import {
   getLastWorkout,
   getRecentWorkouts,
   getUserSettings,
+  healSkullcrushersProgressIfNeeded,
   initializeDatabase,
   saveUserSettings,
   saveWorkout,
@@ -74,6 +75,7 @@ export function App() {
   const loadData = async () => {
     try {
       await initializeDatabase();
+      await healSkullcrushersProgressIfNeeded();
       const settings = await getUserSettings();
       const progress = await getAllExerciseProgress();
       const historyList = await getRecentWorkouts(100);

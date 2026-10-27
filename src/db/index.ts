@@ -33,7 +33,7 @@ export async function initializeDatabase(): Promise<void> {
         exerciseId: id,
         currentWeight: def.defaultWeight,
         consecutiveFailures: 0,
-        mode: id === 'pullups' ? 'bodyweight' : undefined,
+        mode: id === 'pullups' ? 'bodyweight' : id === 'skullcrushers' ? 'dumbbell' : undefined,
         targetRepsPerSet: id === 'bicep_curl' ? 8 : (Array.isArray(def.defaultTargetReps) ? def.defaultTargetReps[0] : def.defaultTargetReps),
         allTimePRWeight: def.defaultWeight,
         allTimePRReps: typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5
@@ -65,14 +65,61 @@ export async function getExerciseProgress(exerciseId: ExerciseId): Promise<Exerc
   return await db.exerciseProgress.get(exerciseId);
 }
 
+export async function healSkullcrushersProgressIfNeeded(): Promise<void> {
+  const lastWorkout = await db.workouts.orderBy('date').reverse().first();
+  if (!lastWorkout) return;
+
+  const skullLog = lastWorkout.exerciseLogs?.find((l) => l.exerciseId === 'skullcrushers');
+  if (!skullLog || skullLog.mode !== 'dumbbell') return;
+
+  const prog = await db.exerciseProgress.get('skullcrushers');
+  if (!prog) return;
+
+  // If the user performed dumbbell skullcrushers in their last session, but progress indicates barbell (due to the 20kg clamp/graduation bug),
+  // heal progress back to dumbbell mode with the correct dumbbell weight.
+  if (prog.mode === 'barbell' || prog.currentWeight >= 20) {
+    const isSuccess = skullLog.completedReps.length >= 3 && skullLog.completedReps.slice(0, 3).every((r) => (r ?? 0) >= (skullLog.targetReps[0] || 10));
+    const sortedDumbbells = [7.5, 9, 10, 12.5, 15, 17.5, 20];
+    let healedWeight = 7.5;
+
+    if (skullLog.targetWeight < 20) {
+      if (isSuccess) {
+        const curIdx = sortedDumbbells.findIndex((w) => w >= skullLog.targetWeight);
+        const nextIdx = curIdx >= 0 ? Math.min(curIdx + 1, sortedDumbbells.length - 1) : 0;
+        healedWeight = sortedDumbbells[nextIdx] < 20 ? sortedDumbbells[nextIdx] : 20;
+      } else {
+        healedWeight = skullLog.targetWeight;
+      }
+    } else {
+      healedWeight = isSuccess ? 9 : 7.5;
+    }
+
+    await db.exerciseProgress.put({
+      ...prog,
+      currentWeight: healedWeight,
+      mode: 'dumbbell',
+      consecutiveFailures: 0,
+      targetRepsPerSet: 10,
+    });
+  }
+}
+
 export async function getAllExerciseProgress(): Promise<Record<ExerciseId, ExerciseProgressState>> {
   const list = await db.exerciseProgress.toArray();
   const map = {} as Record<ExerciseId, ExerciseProgressState>;
   list.forEach(p => {
     const def = EXERCISE_DEFINITIONS[p.exerciseId];
-    // If an existing record had a barbell weight below 20 kg (e.g. legacy skullcrushers @ 15 kg), upgrade to 20 kg
-    if (def && def.category === 'barbell_compound' && p.currentWeight < 20) {
+    // If an existing record had a barbell weight below 20 kg (e.g. legacy bench @ 15 kg), upgrade to 20 kg
+    // Skullcrushers is hybrid (starts as dumbbell @ 7.5kg) - only clamp if explicitly in barbell mode
+    if (def && def.category === 'barbell_compound' && p.exerciseId !== 'skullcrushers' && p.currentWeight < 20) {
       p.currentWeight = 20;
+    }
+    if (p.exerciseId === 'skullcrushers') {
+      if (p.mode === 'barbell' && p.currentWeight < 20) {
+        p.currentWeight = 20;
+      } else if (!p.mode) {
+        p.mode = p.currentWeight >= 20 ? 'barbell' : 'dumbbell';
+      }
     }
     map[p.exerciseId] = p;
   });
@@ -86,7 +133,7 @@ export async function getAllExerciseProgress(): Promise<Record<ExerciseId, Exerc
         exerciseId: id,
         currentWeight: def.defaultWeight,
         consecutiveFailures: 0,
-        mode: id === 'pullups' ? 'bodyweight' : undefined,
+        mode: id === 'pullups' ? 'bodyweight' : id === 'skullcrushers' ? 'dumbbell' : undefined,
         targetRepsPerSet: isDumbbell ? 8 : (Array.isArray(def.defaultTargetReps) ? def.defaultTargetReps[0] : def.defaultTargetReps),
         allTimePRWeight: def.defaultWeight,
         allTimePRReps: typeof def.defaultTargetReps === 'number' ? def.defaultTargetReps : 5,
