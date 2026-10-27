@@ -10,6 +10,7 @@ import {
   deleteWorkout,
   updateExerciseProgress,
   getAllExerciseProgress,
+  healSkullcrushersProgressIfNeeded,
   seedSampleHistory,
 } from '../db';
 import type { WorkoutSession } from '../types';
@@ -110,5 +111,63 @@ describe('IndexedDB operations (db/index.ts)', () => {
     const progress = await getAllExerciseProgress();
     expect(progress.squat.currentWeight).toBe(45);
     expect(progress.deadlift.currentWeight).toBe(55);
+  });
+
+  it('preserves dumbbell skullcrushers weights below 20kg without clobbering to 20kg', async () => {
+    await initializeDatabase();
+    await updateExerciseProgress({
+      exerciseId: 'skullcrushers',
+      currentWeight: 7.5,
+      mode: 'dumbbell',
+      consecutiveFailures: 0,
+      allTimePRWeight: 7.5,
+      allTimePRReps: 10,
+    });
+
+    const progress = await getAllExerciseProgress();
+    expect(progress.skullcrushers.currentWeight).toBe(7.5);
+    expect(progress.skullcrushers.mode).toBe('dumbbell');
+  });
+
+  it('heals skullcrushers back to dumbbell mode if last workout session was in dumbbell mode', async () => {
+    await initializeDatabase();
+
+    // User's DB has 20kg barbell due to previous bug
+    await updateExerciseProgress({
+      exerciseId: 'skullcrushers',
+      currentWeight: 20,
+      mode: 'barbell',
+      consecutiveFailures: 0,
+      allTimePRWeight: 20,
+      allTimePRReps: 10,
+    });
+
+    // Last workout log completed was dumbbell skullcrushers
+    const session: WorkoutSession = {
+      type: 'A',
+      date: new Date().toISOString(),
+      startTime: 1000,
+      endTime: 2000,
+      durationSeconds: 1000,
+      completed: true,
+      exerciseLogs: [
+        {
+          exerciseId: 'skullcrushers',
+          exerciseName: 'Skullcrushers',
+          targetWeight: 10,
+          mode: 'dumbbell',
+          targetReps: [10, 10, 10],
+          completedReps: [10, 10, 10],
+          completed: true,
+        },
+      ],
+    };
+    await saveWorkout(session);
+
+    await healSkullcrushersProgressIfNeeded();
+
+    const progress = await getAllExerciseProgress();
+    expect(progress.skullcrushers.mode).toBe('dumbbell');
+    expect(progress.skullcrushers.currentWeight).toBe(12.5); // stepped up from 10kg
   });
 });

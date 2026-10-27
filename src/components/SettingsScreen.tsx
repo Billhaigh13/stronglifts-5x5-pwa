@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Download, Upload, Trash2, Plus, X, Check, Sparkles, RefreshCw, CheckCircle2, Layers, Minus, Award, ChevronRight, TrendingUp, Info, Dumbbell, Calendar } from 'lucide-react';
-import type { ExerciseId, ExerciseProgressState, UserSettings } from '../types';
+import type { ExerciseId, ExerciseMode, ExerciseProgressState, UserSettings } from '../types';
 import { DEFAULT_PLATE_INVENTORY, DEFAULT_PROGRESSION_CONFIGS, DEFAULT_SCHEDULE_PREFERENCE, EXERCISE_DEFINITIONS, OLYMPIC_PLATE_COLORS } from '../utils/constants';
 import { getEffectiveProgram } from '../utils/programs';
 import { EXERCISE_GUIDES } from '../data/exerciseGuides';
@@ -40,6 +40,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     return map;
   });
 
+  const [exerciseModes, setExerciseModes] = useState<Record<ExerciseId, ExerciseMode>>(() => {
+    const map = {} as Record<ExerciseId, ExerciseMode>;
+    (Object.keys(EXERCISE_DEFINITIONS) as ExerciseId[]).forEach((id) => {
+      if (id === 'skullcrushers') {
+        const prog = exerciseProgress[id];
+        map[id] = prog?.mode || (prog?.currentWeight && prog.currentWeight >= 20 ? 'barbell' : 'dumbbell');
+      } else if (id === 'pullups' || id === 'dips') {
+        map[id] = exerciseProgress[id]?.mode || 'bodyweight';
+      }
+    });
+    return map;
+  });
+
   const [newDbWeight, setNewDbWeight] = useState<string>('');
   const [newPlateWeight, setNewPlateWeight] = useState<string>('');
   const [newPlateCount, setNewPlateCount] = useState<string>('2');
@@ -73,6 +86,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       await updateExerciseProgress({
         ...current,
         currentWeight: weights[id],
+        mode: exerciseModes[id] || current.mode,
       });
     }
 
@@ -761,27 +775,84 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <div className="space-y-2">
           {(Object.keys(EXERCISE_DEFINITIONS) as ExerciseId[]).map((exId) => {
             const def = EXERCISE_DEFINITIONS[exId];
+            const isSkullcrushers = exId === 'skullcrushers';
+            const skullMode = exerciseModes.skullcrushers || 'dumbbell';
+
             return (
               <div
                 key={exId}
-                className="flex items-center justify-between bg-gym-bg/80 px-3 py-2 rounded-xl border border-gym-border/40 text-xs"
+                className="bg-gym-bg/80 px-3 py-2 rounded-xl border border-gym-border/40 text-xs space-y-1.5"
               >
-                <span className="font-bold text-gym-text">{def.name}</span>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    step={def.increment || 2.5}
-                    value={weights[exId] ?? def.defaultWeight}
-                    onChange={(e) =>
-                      setWeights({
-                        ...weights,
-                        [exId]: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-18 bg-gym-surface text-right py-1 px-2 rounded-lg border border-gym-border font-mono font-bold text-gym-text focus:outline-none focus:border-gym-accent"
-                  />
-                  <span className="font-mono text-gym-muted font-bold">{settings.unit}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gym-text">{def.name}</span>
+                    {isSkullcrushers && (
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase ${
+                        skullMode === 'dumbbell'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      }`}>
+                        {skullMode === 'dumbbell' ? 'Dumbbell' : 'Barbell'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      step={def.increment || 2.5}
+                      value={weights[exId] ?? def.defaultWeight}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setWeights((prev) => ({
+                          ...prev,
+                          [exId]: val,
+                        }));
+                        if (isSkullcrushers && val < 20 && skullMode === 'barbell') {
+                          setExerciseModes((prev) => ({ ...prev, skullcrushers: 'dumbbell' }));
+                        }
+                      }}
+                      className="w-18 bg-gym-surface text-right py-1 px-2 rounded-lg border border-gym-border font-mono font-bold text-gym-text focus:outline-none focus:border-gym-accent"
+                    />
+                    <span className="font-mono text-gym-muted font-bold">{settings.unit}</span>
+                  </div>
                 </div>
+
+                {isSkullcrushers && (
+                  <div className="flex items-center gap-1.5 pt-1 border-t border-gym-border/30">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExerciseModes((prev) => ({ ...prev, skullcrushers: 'dumbbell' }));
+                        if ((weights.skullcrushers ?? 20) >= 20) {
+                          setWeights((prev) => ({ ...prev, skullcrushers: 7.5 }));
+                        }
+                      }}
+                      className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                        skullMode === 'dumbbell'
+                          ? 'bg-gym-accent text-gym-bg font-extrabold shadow-glow-emerald/30'
+                          : 'bg-gym-surface text-gym-muted hover:text-gym-text border border-gym-border/40'
+                      }`}
+                    >
+                      Dumbbell (3×10)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExerciseModes((prev) => ({ ...prev, skullcrushers: 'barbell' }));
+                        if ((weights.skullcrushers ?? 0) < 20) {
+                          setWeights((prev) => ({ ...prev, skullcrushers: settings.barWeight || 20 }));
+                        }
+                      }}
+                      className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                        skullMode === 'barbell'
+                          ? 'bg-gym-accent text-gym-bg font-extrabold shadow-glow-emerald/30'
+                          : 'bg-gym-surface text-gym-muted hover:text-gym-text border border-gym-border/40'
+                      }`}
+                    >
+                      Barbell (3×10)
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

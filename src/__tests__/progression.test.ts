@@ -459,6 +459,32 @@ describe('calculateNextProgression', () => {
       expect(result.message).toContain('Deloading to 10 kg dumbbell');
     });
 
+    it('steps up to 20kg dumbbell on completing 3x10 at 17.5kg and stays in dumbbell mode before graduating', () => {
+      const log: ExerciseLog = {
+        exerciseId: 'skullcrushers',
+        exerciseName: 'Skullcrushers',
+        targetWeight: 17.5,
+        mode: 'dumbbell',
+        targetReps: [10, 10, 10],
+        completedReps: [10, 10, 10],
+        completed: true,
+      };
+      const prog: ExerciseProgressState = {
+        exerciseId: 'skullcrushers',
+        currentWeight: 17.5,
+        mode: 'dumbbell',
+        consecutiveFailures: 0,
+        allTimePRWeight: 17.5,
+        allTimePRReps: 10,
+      };
+
+      const result = calculateNextProgression('skullcrushers', log, prog, defaultInventory);
+      expect(result.nextWeight).toBe(20);
+      expect(result.nextMode).toBe('dumbbell');
+      expect(result.nextTargetReps).toBe(10);
+      expect(result.message).toContain('Stepping up to the 20 kg dumbbell');
+    });
+
     it('graduates to 20kg Olympic Barbell when completing 3x10 at 20kg dumbbell', () => {
       const log: ExerciseLog = {
         exerciseId: 'skullcrushers',

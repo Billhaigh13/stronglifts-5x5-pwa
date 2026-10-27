@@ -181,14 +181,26 @@ export function calculateNextProgression(
           const currentIndex = sortedInventory.findIndex((w) => w >= targetWeight);
           const nextIndex = currentIndex >= 0 ? Math.min(currentIndex + 1, sortedInventory.length - 1) : 0;
           const nextWeight = sortedInventory[nextIndex];
-          return {
-            nextWeight,
-            nextMode: 'dumbbell',
-            consecutiveFailures: 0,
-            isDeload: false,
-            nextTargetReps: 10,
-            message: `Crushed 3×10! Stepping up to the ${nextWeight} kg dumbbell (Target: 3×10).`,
-          };
+
+          if (nextWeight < 20) {
+            return {
+              nextWeight,
+              nextMode: 'dumbbell',
+              consecutiveFailures: 0,
+              isDeload: false,
+              nextTargetReps: 10,
+              message: `Crushed 3×10! Stepping up to the ${nextWeight} kg dumbbell (Target: 3×10).`,
+            };
+          } else {
+            return {
+              nextWeight: 20,
+              nextMode: 'dumbbell',
+              consecutiveFailures: 0,
+              isDeload: false,
+              nextTargetReps: 10,
+              message: `Crushed 3×10! Stepping up to the 20 kg dumbbell (Target: 3×10). Complete 3×10 at 20 kg to graduate to the Olympic Barbell!`,
+            };
+          }
         } else {
           // Reached or completed 20 kg with dumbbell -> Graduate to barbell!
           return {
